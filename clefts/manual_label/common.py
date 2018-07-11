@@ -1,5 +1,5 @@
 import os
-from typing import NamedTuple
+from typing import NamedTuple, Tuple
 
 import pandas as pd
 import numpy as np
@@ -32,7 +32,7 @@ class ROI:
         return np.prod(overlaps[overlaps >= 0])
 
 
-def get_superroi(offset_shape, *offset_shapes):
+def get_superroi(offset_shape, *offset_shapes) -> Tuple[np.ndarray, np.ndarray]:
     min_point = offset_shape[0]
     max_point = offset_shape[0] + offset_shape[1]
     for offset, shape in offset_shapes:

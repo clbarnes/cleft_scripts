@@ -31,10 +31,12 @@ import numpy as np
 
 from catpy.image import ImageFetcher
 
+from clefts.bigcat_utils import make_presynaptic_loc, IdGenerator
 from cremi import Volume, Annotations
 from cremi.io import CremiFile
 
-from clefts.constants import STACK_ID, CoordZYX, RESOLUTION, TRANSLATION, DIMS
+from clefts.constants import STACK_ID, CoordZYX, RESOLUTION, TRANSLATION, DIMS, EXTRUSION_FACTOR, PRE_TO_CONN, \
+    PRE_TO_CONN_EXPL
 from clefts.common import center_radius_to_offset_shape
 from clefts.catmaid_interface import CircuitConnectorAPI
 from clefts.manual_label.common import ROI, get_superroi
@@ -55,6 +57,8 @@ AnnotationTuple = namedtuple("AnnotationTuple", ["id", "type", "location"])
 CremiData = namedtuple("CremiData", [
     "raw_data", "res_list", "annotation_tuples", "annotation_partners", "offset_nm", "offset_px"
 ])
+
+ANNOTATION_VERSION = 3
 
 
 class SynapseImageFetcher:
@@ -249,11 +253,15 @@ class SynapseImageFetcher:
         raw_data = np.zeros(super_shape_px, dtype=np.uint8)
         cleft_data = np.zeros(super_shape_px, dtype=np.uint64)
         res_list = RESOLUTION.to_list()
+
+        id_gen = IdGenerator()
+        for col in ["conn_id", "pre_tnid", "post_tnid", "pre_skid", "post_skid"]:
+            id_gen.exclude.update(int(item) for item in rows[col])
+
         annotations = Annotations()
-        annotation_tuples = set()
-        annotation_pairs = set()
 
         zipped = list(zip(rows.iterrows(), offset_shapes))
+        pre_to_conn = dict()
 
         for (_, row), (offset_px, shape_px) in tqdm(zipped, desc="fetching data"):
 
@@ -263,20 +271,19 @@ class SynapseImageFetcher:
 
             raw_data[raw_slicing] = self.get_raw(CoordZYX(offset_px), CoordZYX(shape_px))
 
-            for side in ['pre', 'post']:
-                annotation_tuples.add(AnnotationTuple(
-                    int(row[side + "_tnid"]),
-                    side + "synaptic_site",
-                    tuple(np.array([row[side + "_tn_" + dim] for dim in "zyx"]) - super_offset_nm),
-                ))
+            conn_zyx = - super_offset_nm + [row["conn_" + dim] for dim in 'zyx']
+            post_zyx = - super_offset_nm + [row["post_tn_" + dim] for dim in 'zyx']
+            post_id = int(row["post_tnid"])
 
-            annotation_pairs.add((int(row["pre_tnid"]), int(row["post_tnid"])))
+            pre_zyx = make_presynaptic_loc(conn_zyx, post_zyx, EXTRUSION_FACTOR)
+            pre_id = id_gen.next()
+            pre_to_conn[pre_id] = int(row["conn_id"])
 
-        for annotation_tuple in sorted(annotation_tuples, key=lambda x: (x[1], x[0], x[2])):
-            annotations.add_annotation(*annotation_tuple)
+            annotations.add_annotation(pre_id, 'presynaptic_site', list(pre_zyx))
+            annotations.add_annotation(post_id, 'postsynaptic_site', list(post_zyx))
+            annotations.set_pre_post_partners(pre_id, post_id)
 
-        for annotation_pair in sorted(annotation_pairs):
-            annotations.set_pre_post_partners(*annotation_pair)
+        pre_to_conn_arr = np.array(sorted(pre_to_conn.items()), dtype=np.uint64)
 
         logger.info("writing data")
         with closing(CremiFile(path, mode)) as f:
@@ -286,6 +293,9 @@ class SynapseImageFetcher:
 
             f.h5file.attrs["project_offset"] = list(super_offset_nm)
             f.h5file.attrs["stack_offset"] = list(super_offset_px)
+            f.h5file.attrs["annotation_version"] = ANNOTATION_VERSION
+            ds = f.h5file.create_dataset(PRE_TO_CONN, data=pre_to_conn_arr)
+            ds.attrs["explanation"] = PRE_TO_CONN_EXPL
 
         rows.to_hdf(path, "tables/connectors")
 

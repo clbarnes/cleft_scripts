@@ -134,6 +134,21 @@ class CircuitConnectorAPI(CatmaidClientApplication):
         return pd.DataFrame(rows, columns=headers)
 
     def get_synapses_between(self, pre_skels, post_skels):
+        """
+        Headers are
+        ['conn_id', 'conn_x', 'conn_y', 'conn_z',
+        'pre_tnid', 'pre_skid', 'pre_tn_x', 'pre_tn_y', 'pre_tn_z',
+        'post_tnid', 'post_skid', 'post_tn_x', 'post_tn_y', 'post_tn_z']
+
+        Parameters
+        ----------
+        pre_skels
+        post_skels
+
+        Returns
+        -------
+
+        """
 
         # tc1.connector_id, (c.location_x, c.location_y, c.location_z),
         # tc1.treenode_id, tc1.skeleton_id, tc1.confidence, tc1.user_id,
