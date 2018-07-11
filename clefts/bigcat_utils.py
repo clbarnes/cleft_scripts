@@ -3,19 +3,19 @@ import numpy as np
 from functools import wraps
 from os import PathLike
 
-from clefts.constants import SpecialLabel
+from clefts.constants import SpecialLabel, EXTRUSION_FACTOR
 
-
-id_datasets = [
+ID_DATASETS = (
     "/annotations/ids",
     "/annotations/comments/target_ids",
     "/annotations/presynaptic_site/partners",
+    "/annotations/presynaptic_site/pre_to_conn"
     "/complete_segments",
     "/fragment_segment_lut",
     "/volumes/labels/clefts",
     "/volumes/labels/canvas",
     "/volumes/labels/merged_ids"
-]
+)
 
 
 def _ids_from_arraylike(arr):
@@ -54,7 +54,7 @@ def _ids_from_datasets(hdf, *datasets):
 
 @ensure_file_obj
 def get_largest_id(hdf):
-    ids, max_found = _ids_from_datasets(hdf, *id_datasets)
+    ids, max_found = _ids_from_datasets(hdf, *ID_DATASETS)
     return int(SpecialLabel.MAX_ID) if max_found else max(ids)
 
 
@@ -63,8 +63,9 @@ class OutOfIDsException(Exception):
 
 
 @ensure_file_obj
-def generate_ids(hdf):
-    ids, _ = _ids_from_datasets(hdf, *id_datasets)
+def generate_ids(hdf, exclude=None):
+    ids, _ = _ids_from_datasets(hdf, *ID_DATASETS)
+    ids.update(exclude or set())
     last = max(ids)
     for i in range(last+1, SpecialLabel.MAX_ID + 1):
         ids.add(i)
@@ -76,3 +77,37 @@ def generate_ids(hdf):
         yield i
 
     raise OutOfIDsException("All uint64 IDs have been used")
+
+
+class IdGenerator:
+    def __init__(self, previous=0, exclude=None):
+        self.previous = previous
+        self.exclude = SpecialLabel.values() | (exclude or set())
+
+    def next(self):
+        while len(self.exclude) < SpecialLabel.MAXINT:
+            self.exclude.add(self.previous)
+            self.previous += 1
+            if self.previous not in self.exclude:
+                return self.previous
+
+        raise OutOfIDsException("All uint64 IDs have been used")
+
+    def __iter__(self):
+        while True:
+            yield self.next()
+
+    @classmethod
+    def from_hdf(cls, hdf, exclude=None):
+        ids, _ = _ids_from_datasets(hdf, *ID_DATASETS)
+        if exclude:
+            ids.update(exclude)
+        return cls(max(ids), exclude)
+
+
+def make_presynaptic_loc(conn_zyx, post_zyx, extrusion_factor=EXTRUSION_FACTOR):
+    conn_zyx = np.asarray(conn_zyx)
+    post_zyx = np.asarray(post_zyx)
+    pre_zyx = (conn_zyx - post_zyx) * extrusion_factor + post_zyx
+    pre_zyx[0] = conn_zyx[0]
+    return pre_zyx

@@ -29,10 +29,23 @@ DIMENSION = CoordZYX(z=4841, y=31840, x=28128)
 CONN_CACHE_PATH = 'all_conns.sqlite3'
 BASIN_CACHE_PATH = 'basin_conns.sqlite3'
 
+# what proportion along the postsynaptic_site -> connector vector to place presynaptic_sites
+# <1 means between them, >1 means "behind" the connector
+EXTRUSION_FACTOR = 0.9
+
+PRE = "presynaptic_site"
+POST = "postsynaptic_site"
+
+PRE_TO_CONN = "/annotations/presynaptic_site/pre_to_conn"
+PRE_TO_CONN_EXPL = (
+    "BIGCAT only displays one edge per presynapse, so this format creates new presynapses near the "
+    "connector node. This dataset maps these nodes to the connector IDs"
+)
 
 class SpecialLabel(IntEnum):
     BACKGROUND = 0
     TRANSPARENT = np.iinfo(np.uint64).max
+    MAXINT = np.iinfo(np.uint64).max
     INVALID = np.iinfo(np.uint64).max - 1
     OUTSIDE = np.iinfo(np.uint64).max - 2
     MAX_ID = np.iinfo(np.uint64).max - 3

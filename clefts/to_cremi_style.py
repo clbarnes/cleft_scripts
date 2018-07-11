@@ -21,7 +21,8 @@ from cremi.io import CremiFile
 from clefts.catmaid_interface import get_catmaid
 from clefts.common import resolve_padding, offset_shape_to_slicing
 from clefts.caches import get_caches
-from clefts.constants import RESOLUTION, CoordZYX, STACK_ID, N5_PATH, VOLUME_DS
+from clefts.bigcat_utils import generate_ids, make_presynaptic_loc, IdGenerator
+from clefts.constants import RESOLUTION, CoordZYX, STACK_ID, N5_PATH, VOLUME_DS, EXTRUSION_FACTOR
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,8 @@ DB_CRED_PATH = os.path.expanduser('~/.secrets/catmaid/catsop_db.json')
 
 CONN_CACHE_PATH = 'all_conns.sqlite3'
 BASIN_CACHE_PATH = 'basin_conns.sqlite3'
+
+ANNOTATION_VERSION = 3
 
 
 with open(DB_CRED_PATH) as f:
@@ -197,19 +200,31 @@ class AbstractCremiFactory(metaclass=ABCMeta):
         logger.debug('fetching and mangling annotations')
         resolution = CoordZYX(self.resolution)
 
+        id_gen = IdGenerator.from_hdf(self.output_path)
+
         # annotations = catmaid_to_annotations_conn(
         # annotations = catmaid_to_annotations_conn_to_tn(
-        annotations = catmaid_to_annotations_tn_to_tn(
+        # annotations = catmaid_to_annotations_tn_to_tn(
+        annotations, pre_to_conn = catmaid_to_annotations_near_conn_to_tn(
             CoordZYX(self.translation) + padded_offset_from_stack_px * resolution,
             padded_shape_px * resolution,
             padding_low_px * resolution,
             padding_high_px * resolution,
             comment=True,
+            id_generator=id_gen
         )
+        pre_to_conn_arr = np.array(sorted(pre_to_conn.items()), dtype=np.uint64)
         with self:
             logger.debug('writing annotations')
             self._cremi_file.write_annotations(annotations)
-            self._cremi_file.h5file['annotations'].attrs['populated_on'] = self.timestamp
+            f = self._cremi_file.h5file
+            f['/annotations'].attrs['populated_on'] = self.timestamp
+            ds = f.create_dataset("/annotations/presynaptic_site/pre_to_conn", data=pre_to_conn_arr)
+            ds.attrs["explanation"] = (
+                "BIGCAT only displays one edge per presynapse, so this format creates new presynapses near the "
+                "connector node. This dataset maps these nodes to the connector IDs"
+            )
+            f.attrs["annotation_version"] = ANNOTATION_VERSION
 
     def _open(self, mode=None):
         mode = mode or self.mode
@@ -240,7 +255,7 @@ class CremiFactoryFromN5(AbstractCremiFactory):
         super().__init__(output_path, mode)
 
     def get_raw(self, offset_from_stack_px, shape_px):
-        offset_from_stack_px['y'] += 1  # todo: hardcoded offset
+        offset_from_stack_px['y'] += 1  # todo: fix hardcoded offset
         raw_slicing = offset_shape_to_slicing(offset_from_stack_px, shape_px)
         return self.input_ds[raw_slicing]
 
@@ -489,6 +504,42 @@ def catmaid_to_annotations_conn_to_tn(project_offset_nm, shape_nm, padding_nm, c
             annotations.set_pre_post_partners(conn_id, post_row['tnid'])
 
     return annotations
+
+
+def catmaid_to_annotations_near_conn_to_tn(
+        project_offset_nm, shape_nm, padding_low_nm, padding_high_nm=None, comment=True, id_generator=None
+):
+    assert id_generator, "need an ID generator"
+    # padding_high_nm = padding_high_nm or padding_low_nm
+
+    df = catmaid.get_connector_partners(set(cid for cid, _ in all_cache.in_box(project_offset_nm, shape_nm)))
+    for dim, value in padding_low_nm.items():
+        df['tn_' + dim] -= (project_offset_nm[dim] + value)
+        df['connector_' + dim] -= (project_offset_nm[dim] + value)
+
+    presyn_conn = dict()
+
+    id_generator.exclude.update(int(item) for item in df["connector_id"])
+    id_generator.exclude.update(int(item) for item in df["tn_id"])
+
+    annotations = Annotations(padding_low_nm.to_list())
+    for _, row in df.iterrows():
+
+        if row['is_pre']:
+            continue
+
+        conn_loc = np.array([row['connector_' + dim] for dim in 'zyx'])
+        tn_loc = np.array([row['tn_' + dim] for dim in 'zyx'])
+
+        new_id = id_generator.next()
+        new_loc = make_presynaptic_loc(conn_loc, tn_loc, EXTRUSION_FACTOR)
+
+        annotations.add_annotation(new_id, 'presynaptic_site', new_loc)
+        annotations.add_annotation(int(row["tn_id"]), 'postsynaptic_site', tn_loc)
+        annotations.set_pre_post_partners(new_id, int(row["tn_id"]))
+        presyn_conn[new_id] = int(row['connector_id'])
+
+    return annotations, presyn_conn
 
 
 def main(source, location):
