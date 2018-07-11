@@ -231,7 +231,7 @@ def mirror_name(name: str):
         raise ValueError("Neither 'left' nor 'right' found in name")
 
 
-def df_to_monolothic_json(df, skeletons_path, out_path):
+def df_to_monolothic_hdf5(df, skeletons_path, out_path):
     with open(skeletons_path) as f:
         skels = json.load(f)
 
@@ -251,4 +251,4 @@ def df_to_monolothic_json(df, skeletons_path, out_path):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     df = conn_areas_from_dir(ORN_PN_DIR)
-    df_to_monolothic_json(df, ORN_PN_DIR / "skeletons.json", ORN_PN_DIR / "table.hdf5")
+    df_to_monolothic_hdf5(df, ORN_PN_DIR / "skeletons.json", ORN_PN_DIR / "table.hdf5")

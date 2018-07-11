@@ -1,11 +1,12 @@
-import pandas as pd
-
+import glob
 import os
 import numpy as np
 import h5py
 import json
+
 from skimage.morphology import skeletonize
 from tqdm import tqdm
+import pandas as pd
 
 from clefts.manual_label.constants import PX_AREA, CHO_BASIN_DIR, SPECIAL_INTS
 
@@ -71,7 +72,7 @@ def mirror_name(name):
         raise ValueError(f"Name '{name}' does not contain 'a1l' or 'a1r'")
 
 
-def hdfs_to_tables(skid_to_name, hdf5_paths, out_path):
+def hdfs_to_table(skid_to_name, hdf5_paths, out_path):
     headers = [
         'conn_id',
         'conn_x',
