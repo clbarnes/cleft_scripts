@@ -1,3 +1,4 @@
+"""Used for ORN-PN data"""
 import os
 import numpy as np
 import json
@@ -184,6 +185,7 @@ def count_px(arr, ignore=tuple(SPECIAL_INTS)):
 def conn_areas_from_file(path):
     conn_df = pd.read_hdf(path, "/tables/connectors")
     with CremiFile(path, "r") as cremi:
+        assert cremi.file.attrs["annotation_version"] == 2
         canvas = cremi.file["/volumes/labels/canvas"][:]
         annotations = cremi.read_annotations()
 
