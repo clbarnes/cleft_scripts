@@ -84,9 +84,9 @@ class CircuitConnectorAPI(CatmaidClientApplication):
                 ...
             ]
         """
-        annotation_ids = self.get_annotation_id(annotation_id_or_name)
+        annotation_id = self.get_annotation_id(annotation_id_or_name)
         data = {
-            'annotated_with': str(annotation_ids),
+            'annotated_with': str(annotation_id),
             'with_annotations': 'true',
             'types': ['neuron']
         }
@@ -103,6 +103,32 @@ class CircuitConnectorAPI(CatmaidClientApplication):
             })
 
         return rows
+
+    def get_skeletons_by_id(self, *skeleton_ids):
+        """See get_skeletons_by_annotation docstring"""
+        data = {"skeleton_ids": skeleton_ids, "annotations": 1, "neuronnames": 1}
+        response = self.post((self.project_id, "skeleton", "annotationlist"), data)
+        annotations = response["annotations"]
+        skeletons = response["skeletons"]
+        neuronnames = response["neuronnames"]
+
+        out = []
+        for skid, skel_data in skeletons.items():
+            d = {
+                "skeleton_id": int(skid),
+                "skeleton_name": neuronnames[skid],
+                "annotations": dict()
+            }
+            for this_ann in skel_data["annotations"]:
+                ann_name = annotations[this_ann["id"]]
+                assert ann_name not in d["annotations"], (
+                    f"Annotation '{ann_name}' has multiple IDs, including "
+                    f"{d['annotations'][ann_name]} and {this_ann['id']}"
+                )
+                d["annotations"][ann_name] = int(this_ann["id"])
+            out.append(d)
+
+        return out
 
     def get_synapses_among(self, skeleton_ids):
         """
