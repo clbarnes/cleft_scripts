@@ -24,22 +24,28 @@ import json
 import logging
 import os
 from collections import namedtuple
+
+from abc import ABCMeta, abstractmethod
 from contextlib import closing
 
 from tqdm import tqdm
 import numpy as np
 
 from catpy.image import ImageFetcher
+from typing import Dict, Any, Type
 
 from clefts.bigcat_utils import make_presynaptic_loc, IdGenerator
 from cremi import Volume, Annotations
 from cremi.io import CremiFile
 
-from clefts.constants import STACK_ID, CoordZYX, RESOLUTION, TRANSLATION, DIMS, EXTRUSION_FACTOR, PRE_TO_CONN, \
-    PRE_TO_CONN_EXPL
+from clefts.constants import (
+    STACK_ID, CoordZYX, RESOLUTION, TRANSLATION, DIMS, EXTRUSION_FACTOR, Dataset, PRE_TO_CONN_EXPL,
+    N5_PATH, VOLUME_DS, N5_OFFSET
+)
 from clefts.common import center_radius_to_offset_shape
 from clefts.catmaid_interface import CircuitConnectorAPI
 from clefts.manual_label.common import ROI, get_superroi
+from clefts.n5_imagefetcher import N5ImageFetcher
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +57,7 @@ catmaid = CircuitConnectorAPI.from_json(CATMAID_CREDS_PATH)
 ImageFetcher.show_progress = False
 im_fetcher = ImageFetcher.from_catmaid(catmaid, STACK_ID)
 im_fetcher.set_fastest_mirror()
+n5_im_fetcher = N5ImageFetcher(N5_PATH, VOLUME_DS, N5_OFFSET)
 
 
 AnnotationTuple = namedtuple("AnnotationTuple", ["id", "type", "location"])
@@ -240,7 +247,7 @@ class SynapseImageFetcher:
         z_df = pd.DataFrame(z_offsets, index=df.index, columns=["z"])
         z_df.to_hdf(path, "tables/z_offset")
 
-    def write_multicremi(self, rows, path, mode="a"):
+    def write_multicremi(self, rows, path, mode="w-"):
         offset_shapes = []
 
         for _, row in rows.iterrows():
@@ -294,12 +301,12 @@ class SynapseImageFetcher:
             f.h5file.attrs["project_offset"] = list(super_offset_nm)
             f.h5file.attrs["stack_offset"] = list(super_offset_px)
             f.h5file.attrs["annotation_version"] = ANNOTATION_VERSION
-            ds = f.h5file.create_dataset(PRE_TO_CONN, data=pre_to_conn_arr)
+            ds = f.h5file.create_dataset(Dataset.PRE_TO_CONN, data=pre_to_conn_arr)
             ds.attrs["explanation"] = PRE_TO_CONN_EXPL
 
         rows.to_hdf(path, "tables/connectors")
 
-    def process(self, base_name, mode="a"):
+    def process(self, base_name, mode="w-"):
         df = self.get_connectors()
 
         g = nx.Graph()
@@ -331,44 +338,98 @@ class SynapseImageFetcher:
             self.write_cremi(row, mode)
 
 
-def write_cho_basin_cremis(output_root, mode="a", catmaid=catmaid, image_fetcher=im_fetcher, **kwargs):
-    output_dir = os.path.join(output_root, 'cho-basin')
-    pre_skel_info = catmaid.get_skeletons_by_annotation('a1chos')
-    post_skel_info = catmaid.get_skeletons_by_annotation('a1basins')
-    skels = {"pre": pre_skel_info, "post": post_skel_info}
-    with open(os.path.join(output_dir, "skeletons.json"), "w") as f:
+class SkelInfoGetter(metaclass=ABCMeta):
+    output_dir = None
+
+    def __init__(self, catmaid: CircuitConnectorAPI):
+        self.catmaid = catmaid
+
+    @abstractmethod
+    def fetch(self):
+        pass
+
+
+class ChoBasinGetter(SkelInfoGetter):
+    """a1 chordotonals to a1 basins"""
+
+    output_dir = "cho-basin"
+
+    def fetch(self):
+        pre_skel_info = self.catmaid.get_skeletons_by_annotation('a1chos')
+        post_skel_info = self.catmaid.get_skeletons_by_annotation('a1basins')
+        return {"pre": pre_skel_info, "post": post_skel_info}
+
+
+class OrnPnGetter(SkelInfoGetter):
+    """82a and 45a ORNs to PNs"""
+
+    output_dir = "82a_45a_ORN-PN"
+
+    def fetch(self):
+        pre_skel_info = []
+        post_skel_info = []
+        for annotation in ['82a', '45a']:
+            skel_infos = self.catmaid.get_skeletons_by_annotation(annotation)
+            pre_skel_info.extend(skel for skel in skel_infos if "ORN" in skel["skeleton_name"])
+            post_skel_info.extend(skel for skel in skel_infos if "PN" in skel["skeleton_name"])
+
+        return {"pre": pre_skel_info, "post": post_skel_info}
+
+
+class PnKcGetter(SkelInfoGetter):
+    """1a and 42a PNs to KCs 82 and 65"""
+
+    output_dir = "1a_42a_PN-82_65_KC"
+
+    def fetch(self):
+        assert False, "not sure what IDs we need"
+        pre_skel_info = []
+        for annotation in ['1a PN', '42a PN']:
+            pre_skel_info.extend(self.catmaid.get_skeletons_by_annotation(annotation))
+
+        post_skel_ids = [
+            9609048, 15722867,  # KC82 right and left
+            8850802, 5937084  # KC65 right and left
+        ]
+        post_skel_info = self.catmaid.get_skeletons_by_id(*post_skel_ids)
+        return {"pre": pre_skel_info, "post": post_skel_info}
+
+
+class LnBasinGetter(SkelInfoGetter):
+    """Lateral inhibition neuron groups LNa and LNb which feed onto a1 basins 1 and 2"""
+
+    output_dir = "LN-basin"
+
+    def fetch(self):
+        pre_skel_info = []
+        for annotation in ['chopaper_LNa', 'chopaper_LNb']:
+            pre_skel_info.extend(self.catmaid.get_skeletons_by_annotation(annotation))
+
+        post_skel_info = []
+        for annotation in ['chopaper_basin1', 'chopaper_basin2']:
+            post_skel_info.extend(self.catmaid.get_skeletons_by_annotation(annotation))
+
+        return {"pre": pre_skel_info, "post": post_skel_info}
+
+
+def write_cremis(
+        output_root, mode="w-", catmaid=catmaid, image_fetcher=im_fetcher,
+        skel_getter: Type[SkelInfoGetter]=None, **kwargs
+):
+    output_dir = os.path.join(output_root, skel_getter.output_dir)
+    os.makedirs(output_dir)
+    skels = skel_getter(catmaid).fetch()
+    with open(os.path.join(output_dir, "skeletons.json"), "x") as f:
         json.dump(skels, f, sort_keys=True, indent=2)
 
-    pre_skels = [skel["skeleton_id"] for skel in pre_skel_info]
-    post_skels = [skel["skeleton_id"] for skel in post_skel_info]
+    pre_skels = [skel["skeleton_id"] for skel in skels["pre"]]
+    post_skels = [skel["skeleton_id"] for skel in skels["post"]]
 
     fetcher = SynapseImageFetcher(output_dir, pre_skels, post_skels, catmaid, image_fetcher, **kwargs)
     fetcher.process(os.path.join(output_dir, "data"), mode)
 
 
-def write_olfactory_cremis(output_root, mode="a", catmaid=catmaid, image_fetcher=im_fetcher, **kwargs):
-    output_dir = os.path.join(output_root, '82a_45a_ORN-PN')
-    os.makedirs(output_dir, exist_ok=True)
-
-    pre_skel_info = []
-    post_skel_info = []
-    for annotation in ['82a', '45a']:
-        skel_infos = catmaid.get_skeletons_by_annotation(annotation)
-        pre_skel_info += [skel for skel in skel_infos if "ORN" in skel["skeleton_name"]]
-        post_skel_info += [skel for skel in skel_infos if "PN" in skel["skeleton_name"]]
-
-    skels = {"pre": pre_skel_info, "post": post_skel_info}
-    with open(os.path.join(output_dir, "skeletons.json"), "w") as f:
-        json.dump(skels, f, sort_keys=True, indent=2)
-
-    pre_skels = [skel["skeleton_id"] for skel in pre_skel_info]
-    post_skels = [skel["skeleton_id"] for skel in post_skel_info]
-
-    fetcher = SynapseImageFetcher(output_dir, pre_skels, post_skels, catmaid, image_fetcher, **kwargs)
-    fetcher.process(os.path.join(output_root, "data"), mode)
-
-
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARNING)
 
-    write_olfactory_cremis(output, "w", catmaid, im_fetcher)
+    write_cremis(output, "w", catmaid, n5_im_fetcher, LnBasinGetter)

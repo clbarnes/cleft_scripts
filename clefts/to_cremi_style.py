@@ -1,3 +1,11 @@
+"""
+Given a region of interest and some CATMAID information,
+produce a CREMI-like HDF5 file including raw data and
+synaptic partner annotations.
+
+Requires database access.
+"""
+
 import json
 import math
 import os
@@ -21,7 +29,7 @@ from cremi.io import CremiFile
 from clefts.catmaid_interface import get_catmaid
 from clefts.common import resolve_padding, offset_shape_to_slicing
 from clefts.caches import get_caches
-from clefts.bigcat_utils import generate_ids, make_presynaptic_loc, IdGenerator
+from clefts.bigcat_utils import make_presynaptic_loc, IdGenerator
 from clefts.constants import RESOLUTION, CoordZYX, STACK_ID, N5_PATH, VOLUME_DS, EXTRUSION_FACTOR
 
 logger = logging.getLogger(__name__)
