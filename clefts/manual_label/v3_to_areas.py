@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from clefts.constants import SpecialLabel, PRE_TO_CONN
+from clefts.constants import SpecialLabel, Dataset
 from clefts.manual_label.constants import PX_AREA
 from cremi import CremiFile
 
@@ -60,7 +60,7 @@ def conn_areas_from_file(fpath: os.PathLike):
         assert cremi.file.attrs["annotation_version"] == 3
         canvas = cremi.file["/volumes/labels/canvas"][:]
         annotations = cremi.read_annotations()
-        pre_to_conn = dict(cremi.file[PRE_TO_CONN])
+        pre_to_conn = dict(cremi.file[Dataset.PRE_TO_CONN])
 
     edge_labels = edges_to_labels(annotations, pre_to_conn)
 

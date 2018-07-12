@@ -6,7 +6,6 @@ from collections import namedtuple
 import logging
 
 import pandas as pd
-import re
 import traceback
 from tqdm import tqdm
 
