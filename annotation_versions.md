@@ -5,6 +5,7 @@
 - The postsynaptic site is the treenode postsynaptic to the connector node
 - Partners are one to one
 - Clefts are labelled with arbitrary thickness, and so must be skeletonised
+- Image data is JPEG-compressed from CATMAID tiles
 - File names are `"{connector_id}_{post_tnid}.hdf5"`
 - Used in `cho-basin`
 
@@ -16,6 +17,7 @@
 - Partners are one to many: all sites are rendered, but BIGCAT only renders one edge per presynaptic site
 - Information about the contained edges are serialised in pytables format in `/tables/connectors`
 - Clefts are labelled with a 1px brush but may still need skeletonising
+- Image data is JPEG-compressed from CATMAID tiles
 - File names are `"data_{n}.hdf5"`
 - Used in `82a_45a_ORN-PN`
 
@@ -28,4 +30,5 @@
 - Partners are one to one
 - Information about the contained edges are serialised in pytables format in `/tables/connectors`
 - Clefts are labelled with a 1px brush but may still need skeletonising
+- Image data is lossless from N5 export
 - File names are `"data_{n}.hdf5"`
