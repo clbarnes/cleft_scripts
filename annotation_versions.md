@@ -9,6 +9,12 @@
 - File names are `"{connector_id}_{post_tnid}.hdf5"`
 - Used in `cho-basin`
 
+Reasons for deprecation:
+
+- Images for nearby synapses are downloaded several times and stored in different files,
+making it hard to compare potentially double-labelled synapses
+- Closing and opening BIGCAT for every synapse is time-consuming
+
 # 2
 
 - Postsynaptic sites whose ROIs overlap are included in the same HDF5 file
@@ -21,6 +27,10 @@
 - File names are `"data_{n}.hdf5"`
 - Used in `82a_45a_ORN-PN`
 
+Reasons for deprecation:
+
+- Only one edge is drawn per presynaptic node, so slices with multiple synapses get confusing
+
 # 3 
 
 - Postsynaptic sites whose ROIs overlap are included in the same HDF5 file
@@ -31,4 +41,5 @@
 - Information about the contained edges are serialised in pytables format in `/tables/connectors`
 - Clefts are labelled with a 1px brush but may still need skeletonising
 - Image data is lossless from N5 export
+- Used in `LN-basin`
 - File names are `"data_{n}.hdf5"`
