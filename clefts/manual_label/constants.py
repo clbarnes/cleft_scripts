@@ -6,6 +6,7 @@ from clefts.constants import RESOLUTION
 MANUAL_CLEFTS_DIR = Path("/data2/manual_clefts")
 CHO_BASIN_DIR = MANUAL_CLEFTS_DIR / "cho-basin"
 ORN_PN_DIR = MANUAL_CLEFTS_DIR / "82a_45a_ORN-PN"
+LN_BASIN_DIR = MANUAL_CLEFTS_DIR / "LN-basin"
 
 TRANSPARENT = np.iinfo("uint64").max
 INVALID = TRANSPARENT - 1
