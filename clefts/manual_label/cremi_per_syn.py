@@ -32,7 +32,7 @@ from tqdm import tqdm
 import numpy as np
 
 from catpy.image import ImageFetcher
-from typing import Dict, Any, Type
+from typing import Type
 
 from clefts.bigcat_utils import make_presynaptic_loc, IdGenerator
 from cremi import Volume, Annotations
@@ -301,6 +301,7 @@ class SynapseImageFetcher:
             f.h5file.attrs["project_offset"] = list(super_offset_nm)
             f.h5file.attrs["stack_offset"] = list(super_offset_px)
             f.h5file.attrs["annotation_version"] = ANNOTATION_VERSION
+            f.h5file.attrs["next_id"] = id_gen.next()
             ds = f.h5file.create_dataset(Dataset.PRE_TO_CONN, data=pre_to_conn_arr)
             ds.attrs["explanation"] = PRE_TO_CONN_EXPL
 
@@ -376,7 +377,7 @@ class OrnPnGetter(SkelInfoGetter):
         return {"pre": pre_skel_info, "post": post_skel_info}
 
 
-class PnKcGetter(SkelInfoGetter):
+class PnKcGetter(SkelInfoGetter):  # todo
     """1a and 42a PNs to KCs 82 and 65"""
 
     output_dir = "1a_42a_PN-82_65_KC"
