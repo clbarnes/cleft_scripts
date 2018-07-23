@@ -1,5 +1,6 @@
 import h5py
 import numpy as np
+from contextlib import contextmanager
 from functools import wraps
 from os import PathLike
 
@@ -35,21 +36,33 @@ def _ids_from_arraylikes(*arrs):
     return ids, max_found
 
 
+@contextmanager
+def as_hdf5_file(hdf):
+    if isinstance(hdf, PathLike):
+        with h5py.File(hdf, 'r') as f:
+            yield f
+    else:
+        yield hdf
+
+
 def ensure_file_obj(fn):
     """Decorate for functions whose first argument should be an open h5py.File.
     If a PathLike is passed instead, the file will be opened for the duration of the call."""
     @wraps(fn)
     def wrapped(hdf, *args, **kwargs):
-        if isinstance(hdf, PathLike):
-            with h5py.File(hdf, 'r') as f:
-                return fn(f, *args, **kwargs)
-        return fn(hdf, *args, **kwargs)
+        with as_hdf5_file(hdf):
+            return fn(hdf, *args, **kwargs)
     return wrapped
 
 
 @ensure_file_obj
 def _ids_from_datasets(hdf, *datasets):
     return _ids_from_arraylikes(*[hdf[ds] for ds in datasets if ds in hdf])
+
+
+@ensure_file_obj
+def _previous_id(hdf):
+    return hdf.attrs.get("next_id", 1) - 1
 
 
 @ensure_file_obj
@@ -81,7 +94,8 @@ def generate_ids(hdf, exclude=None):
 
 class IdGenerator:
     def __init__(self, previous=0, exclude=None):
-        self.previous = previous
+        # previous if explicitly given, otherwise highest excluded if given
+        self.previous = previous or max(exclude or [previous])
         self.exclude = SpecialLabel.values() | (exclude or set())
 
     def next(self):
@@ -99,10 +113,11 @@ class IdGenerator:
 
     @classmethod
     def from_hdf(cls, hdf, exclude=None):
-        ids, _ = _ids_from_datasets(hdf, *ID_DATASETS)
-        if exclude:
-            ids.update(exclude)
-        return cls(max(ids), exclude)
+        with as_hdf5_file(hdf):
+            ids, _ = _ids_from_datasets(hdf, *ID_DATASETS)
+            if exclude:
+                ids.update(exclude)
+            return cls(_previous_id(hdf), exclude=ids)
 
 
 def make_presynaptic_loc(conn_zyx, post_zyx, extrusion_factor=EXTRUSION_FACTOR):
