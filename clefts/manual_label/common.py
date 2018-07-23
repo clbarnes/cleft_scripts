@@ -1,10 +1,13 @@
 import os
-from typing import NamedTuple, Tuple
+from abc import ABCMeta, abstractmethod
+from typing import NamedTuple, Tuple, Dict
 
 import pandas as pd
 import numpy as np
+from skimage.morphology import skeletonize
 
-from clefts.manual_label.constants import TABLE_FNAME, SKELS_KEY, CONNECTORS_KEY, ROI_KEY, DFS_KEYS
+from clefts.constants import SpecialLabel
+from clefts.manual_label.constants import TABLE_FNAME, DFS_KEYS, PX_AREA
 
 
 class ROI:
@@ -108,3 +111,41 @@ def dfs_to_hdf5(skel_conn_roi_dfs: tuple, dpath: os.PathLike) -> str:
 
 def dfs_from_dir(dpath: os.PathLike) -> SkelConnRoiDFs:
     return SkelConnRoiDFs.from_hdf5(dpath)
+
+
+class AreaCalculator(metaclass=ABCMeta):
+    def __init__(self, arr):
+        self.arr = arr
+
+    def label_set(self, arr=None):
+        arr = self.arr if arr is None else arr
+        return set(np.unique(arr)) - SpecialLabel.values()
+
+    @abstractmethod
+    def calculate(self) -> Dict[int, float]:
+        pass
+
+
+class SimpleAreaCalculator(AreaCalculator):
+    def calculate(self):
+        counts = dict()
+        for label in self.label_set():
+            counts[label] = (self.arr == label).sum() * PX_AREA
+        return counts
+
+
+class SkeletonAreaCalculator(AreaCalculator):
+    def calculate(self):
+        counts = dict()
+        for z_plane in self.arr:
+            for label in self.label_set(z_plane):
+                if label not in counts:
+                    counts[label] = 0
+                counts[label] += skeletonize(z_plane == label).sum() * PX_AREA
+        return counts
+
+
+class LinearAreaCalculator(AreaCalculator):
+    def calculate(self):
+        # todo: see https://github.com/clbarnes/linear_skeleton
+        raise NotImplementedError()
