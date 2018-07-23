@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import glob
 import traceback
@@ -8,18 +9,15 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from clefts.constants import SpecialLabel, Dataset
-from clefts.manual_label.constants import PX_AREA
+from clefts.manual_label.common import SkeletonAreaCalculator
+from clefts.constants import Dataset
+from clefts.manual_label.constants import LN_BASIN_DIR
+from clefts.manual_label.skeleton import Skeleton, skeletons_to_tables
 from cremi import CremiFile
 
 
-def count_px(arr: np.array):
-    labels = set(np.unique(arr)) - SpecialLabel.values()
-    output = dict()
-    for label in tqdm(labels, desc="counting labelled px"):
-        output[label] = (arr == label).sum()
-
-    return output
+def calculate_area(arr: np.array):
+    return SkeletonAreaCalculator(arr).calculate()
 
 
 def edges_to_labels(annotations, pre_to_conn):
@@ -55,18 +53,18 @@ def edges_to_labels(annotations, pre_to_conn):
 
 def conn_areas_from_file(fpath: os.PathLike):
     fpath = str(fpath)
-    conn_df = pd.read_hdf(fpath, "/tables/connectors")
+    conn_df = pd.read_hdf(fpath, Dataset.CONN_TABLE)
     with CremiFile(fpath, "r") as cremi:
         assert cremi.file.attrs["annotation_version"] == 3
-        canvas = cremi.file["/volumes/labels/canvas"][:]
+        canvas = cremi.file[Dataset.CANVAS][:]
         annotations = cremi.read_annotations()
         pre_to_conn = dict(cremi.file[Dataset.PRE_TO_CONN])
 
     edge_labels = edges_to_labels(annotations, pre_to_conn)
 
-    counts = count_px(canvas)
+    counts = calculate_area(canvas)
     areas = [
-        counts[edge_labels[(int(row["conn_id"]), int(row["post_tnid"]))]] * PX_AREA
+        counts[edge_labels[(int(row["conn_id"]), int(row["post_tnid"]))]]
         for _, row in conn_df.iterrows()
     ]
     conn_df["area"] = areas
@@ -90,3 +88,34 @@ def conn_areas_from_dir(dpath: Path):
             json.dump(errors, f, indent=2, sort_keys=True)
 
     return pd.concat(dfs)
+
+
+def id_to_skel(skeletons_path):
+    with open(skeletons_path) as f:
+        skels = json.load(f)
+    id_to_obj = dict()
+    for skels_dicts in skels.values():
+        for skel_dict in skels_dicts:
+            id_to_obj[skel_dict["skeleton_id"]] = Skeleton.from_name(
+                skel_dict["skeleton_id"],
+                skel_dict["skeleton_name"],
+                skel_dict["annotations"]
+            )
+
+    return id_to_obj
+
+
+def conn_areas_to_hdf5(df, skeletons_path, out_path):
+    id_to_obj = id_to_skel(skeletons_path)
+
+    df.to_hdf(out_path, key="connectors")
+
+    skel_tables = skeletons_to_tables(id_to_obj.values())
+    for key, table in skel_tables.items():
+        table.to_hdf(out_path, key='skeletons/' + key)
+
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+    df = conn_areas_from_dir(LN_BASIN_DIR)
+    conn_areas_to_hdf5(df, LN_BASIN_DIR / "skeletons.json", LN_BASIN_DIR / "table.hdf5")
