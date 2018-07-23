@@ -9,12 +9,10 @@ from datetime import datetime
 import numpy as np
 import re
 import logging
-from functools import wraps
 
 from matplotlib import pyplot as plt
-from matplotlib import mlab
 import networkx as nx
-from scipy.stats import lognorm, norm
+from scipy.stats import norm
 from tqdm import tqdm
 from scipy import stats
 
@@ -297,7 +295,7 @@ def filter_graph(g, pre_pattern, post_pattern):
 
 
 def sturges_rule(values):
-    return 1+ np.log2(len(values))
+    return math.ceil(1 + np.log2(len(values)))
 
 
 def square_root_choice(values):
