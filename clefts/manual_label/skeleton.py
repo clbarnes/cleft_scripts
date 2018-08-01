@@ -1,3 +1,5 @@
+import functools
+import time
 from itertools import chain, compress
 
 import pandas as pd
@@ -5,34 +7,52 @@ import pandas as pd
 import os
 
 import json
+import random
 import re
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 from enum import Enum
 from io import TextIOBase
 from json import JSONDecodeError
-from typing import Sequence, Iterable, Dict
+from typing import Iterable, Dict
 from pathlib import Path
 
+from clefts.manual_label.plot.constants import USE_TEX
+from manual_label.common import hdf_join
 
-class Side(Enum):
+
+class StrEnum(Enum):
+    @classmethod
+    @abstractmethod
+    def from_str(cls, s):
+        if isinstance(s, cls):
+            return s
+
+        raise ValueError(f"{repr(s)} could not be interpreted as a {cls.__name__}")
+
+    def __str__(self):
+        return str(self.value)
+
+
+class Side(StrEnum):
     RIGHT = "r"
     LEFT = "l"
     R = "r"
     L = "l"
-    NONE = ""
+    # BILATERAL = 'bi'  # groups only
+    UNDEFINED = ""
 
     @classmethod
-    def from_string(cls, s):
+    def from_str(cls, s):
         if isinstance(s, cls):
             return s
         elif not s:
-            return cls.NONE
+            return cls.UNDEFINED
         elif s.lower() in {'r', 'right'}:
             return cls.RIGHT
         elif s.lower() in {'l', 'left'}:
             return cls.LEFT
         else:
-            raise ValueError(f"String '{s}' could not be interpreted as a side")
+            raise ValueError(f"{repr(s)} could not be interpreted as a {cls.__name__}")
 
     def opposite(self):
         tp = type(self)
@@ -41,11 +61,27 @@ class Side(Enum):
         elif self == tp.LEFT:
             return tp.RIGHT
         else:
-            return tp.NONE
+            return tp.UNDEFINED
+
+    @classmethod
+    def from_group(cls, sides, ignore_none=False):
+        """
+        Get the side of a group of sides. If ignore_none is False, any NONE will set the group side to NONE.
+        """
+        sides = set(sides)
+        if ignore_none:
+            sides.discard(cls.UNDEFINED)
+        elif cls.UNDEFINED in sides:
+            return cls.UNDEFINED
+
+        if len(sides) == 1:
+            return sides.pop()
+        else:
+            return cls.UNDEFINED
 
 
-class Segment(Enum):
-    NONE = ""
+class Segment(StrEnum):
+    UNDEFINED = ""
     T1 = "t1"
     T2 = "t2"
     T3 = "t3"
@@ -58,54 +94,71 @@ class Segment(Enum):
     A7 = "a7"
     A8 = "a8"
     A9 = "a9"
+    # MULTI = "multi"
 
     @classmethod
-    def from_string(cls, s):
+    def from_str(cls, s):
         if isinstance(s, cls):
             return s
         elif s is None:
-            return cls.NONE
+            return cls.UNDEFINED
 
         segment_dict = {seg.value: seg for seg in cls}
 
         try:
             return segment_dict[s.lower()]
         except KeyError:
-            raise ValueError(f"String '{s}' could not be interpreted as a segment")
+            raise ValueError(f"{repr(s)} could not be interpreted as a {cls.__name__}")
+
+    @classmethod
+    def from_group(cls, segments, ignore_none=False):
+        segments = set(segments)
+        if ignore_none:
+            segments.discard(cls.UNDEFINED)
+        elif cls.UNDEFINED in segments:
+            return cls.UNDEFINED
+
+        if len(segments) == 1:
+            return segments.pop()
+        else:
+            return cls.UNDEFINED
 
 
-class Skeleton:
+@functools.total_ordering
+class CircuitNode(metaclass=ABCMeta):
     def __init__(
             self, skid, name: str, side: Side, segment: Segment,
             classes: Iterable=None, superclasses: Iterable=None,
             annotations=None
     ):
         self.id = int(skid)
-        self.name = name
-        self.side = side
-        self.segment = segment
-        self.classes = {item.lower() for item in classes} if classes else set()
-        self.superclasses = {item.lower() for item in superclasses} if superclasses else set()
-        self.annotations = set(annotations) if annotations else set()
+        self.side = Side.from_str(side)
+        self.segment = Segment.from_str(segment)
+        self.classes = frozenset(item.lower() for item in classes) if classes else frozenset()
+        self.superclasses = frozenset(item.lower() for item in superclasses) if superclasses else frozenset()
+        self.annotations = frozenset(annotations) if annotations else frozenset()
+        self.name = name or self.create_name()
 
-    def __str__(self):
-        return self.name
+    @abstractmethod
+    def create_name(self) -> str:
+        pass
 
-    def __hash__(self):
-        return hash(self.id)
-
-    def __eq__(self, other):
-        return isinstance(other, Skeleton) and self.id == other.id
-
-    def find_mirror(self, others):
-        for other in others:
+    def find_mirrors(self, others):
+        return [
+            other for other in others
             if all([
                 other.side == self.side.opposite(),
                 other.segment == self.segment,
                 other.classes == self.classes,
                 other.superclasses == self.superclasses
-            ]):
-                return other
+            ])
+        ]
+
+    def find_copies(self, others):
+        return [
+            other for other in others
+            if self == other
+        ]
 
     def find_segment_copies(self, others):
         return [
@@ -118,19 +171,109 @@ class Skeleton:
             ])
         ]
 
+    def _to_sort_key(self):
+        return sorted(self.superclasses), sorted(self.classes), self.segment, self.side, self.id
+
+    def __lt__(self, other):
+        if not isinstance(other, CircuitNode):
+            raise TypeError(
+                f"'<' not supported between instances of '{type(self).__name__}' and '{type(other).__name__}'"
+            )
+        return self._to_sort_key() < other._to_sort_key()
+
+    def __eq__(self, other):
+        return isinstance(other, CircuitNode) and all([
+            getattr(self, attr) == getattr(other, attr) for attr in
+            ["side", "segment", "classes", "superclasses"]
+        ])
+
+    def __str__(self):
+        return self.create_name()
+
+
+class Crossing(StrEnum):
+    UNDEFINED = ""
+    IPSI = "ipsi"
+    IPSILATERAL = "ipsi"
+    CONTRA = "contra"
+    CONTRALATERAL = "contra"
+
+    @classmethod
+    def from_str(cls, s):
+        if isinstance(s, cls):
+            return s
+
+        if not s:
+            return cls.UNDEFINED
+
+        if s.lower().startswith("ipsi"):
+            return cls.IPSILATERAL
+        elif s.lower().startswith("contra"):
+            return cls.CONTRALATERAL
+        else:
+            raise ValueError(f"{repr(s)} could not be interpreted as a {cls.__name__}")
+
+    @classmethod
+    def from_sides(cls, src, tgt):
+        if src == Side.UNDEFINED or tgt == Side.UNDEFINED:
+            return cls.UNDEFINED
+        elif src == tgt:
+            return cls.IPSILATERAL
+        else:
+            return cls.CONTRALATERAL
+
+    @classmethod
+    def from_skeletons(cls, src: CircuitNode, tgt: CircuitNode):
+        return cls.from_sides(src.side, tgt.side)
+
+    @classmethod
+    def from_group(cls, crossings, ignore_none=False):
+        crossings = set(crossings)
+        if ignore_none:
+            crossings.discard(cls.UNDEFINED)
+        elif cls.UNDEFINED in crossings:
+            return cls.UNDEFINED
+
+        if cls.CONTRALATERAL in crossings:
+            return cls.CONTRALATERAL
+        elif cls.IPSILATERAL in crossings:
+            return cls.IPSILATERAL
+        else:
+            return cls.UNDEFINED
+
+
+class Skeleton(CircuitNode):
+    def __str__(self):
+        return self.name
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def create_name(self):
+        segside = self.segment.value + self.side.value
+        classes = " ".join(sorted(self.classes))
+        return f'{classes} {segside}' if segside else classes
+
     def to_dict(self):
         return {
-            "id": self.id,
-            "name": self.name,
-            "side": self.side.value,
-            "segment": self.segment.value,
-            "classes": sorted(self.classes),
-            "superclasses": sorted(self.superclasses),
-            "annotations": sorted(self.annotations)
+            key: getattr(self, key)
+            for key in [
+                "id", "name", "side", "segment",
+                "classes", "superclasses", "annotations"
+            ]
         }
 
     def to_json(self, fpath=None, mode="r", **kwargs):
         d = self.to_dict()
+
+        # StrEnum members
+        for key in ["side", "segment"]:
+            d[key] = str(d[key])
+
+        # set members
+        for key in ["classes", "superclasses", "annotations"]:
+            d[key] = sorted(d[key])
+
         s = json.dumps(d, **kwargs)
         if fpath:
             with open(fpath, mode) as f:
@@ -141,7 +284,7 @@ class Skeleton:
     def from_dict(cls, d):
         return cls(
             d["id"], d["name"],
-            Side.from_string(d.get("side")), Segment.from_string(d["segment"]),
+            d.get("side"), d.get("segment"),
             d.get("classes", []), d.get("superclasses", []),
             d.get("annotations", [])
         )
@@ -149,9 +292,9 @@ class Skeleton:
     @classmethod
     def from_json(cls, s):
         if isinstance(s, TextIOBase):
-            return json.load(s)
+            return cls.from_dict(json.load(s))
         try:
-            return json.loads(s)
+            return cls.from_dict(json.loads(s))
         except JSONDecodeError as e:
             if os.path.isfile(s):
                 with open(s) as f:
@@ -170,7 +313,7 @@ class Skeleton:
             return cls._from_LN_name(skid, name, annotations, **kwargs)
         if " ORN " in name or " PN " in name:
             return cls._from_ORN_PN_name(skid, name, annotations, **kwargs)
-        if re.match(".+ch.+a1[lr]", name):
+        if re.match(r"^[lv]\'?ch.+\sa1[lr]$", name):
             return cls._from_cho_name(skid, name, annotations, **kwargs)
 
         raise ValueError(f"Could not infer skeleton information from name '{name}' and given annotations")
@@ -180,7 +323,7 @@ class Skeleton:
         alphanum_class, seg_side, basin_class = name.split(' ')
         return cls(
             skid, name,
-            Side.from_string(seg_side[-1]), Segment.from_string(seg_side[:-1]),
+            Side.from_str(seg_side[-1]), Segment.from_str(seg_side[:-1]),
             [alphanum_class, basin_class],
             [alphanum_class[:-1], basin_class.split('-')[0]],
             annotations
@@ -190,11 +333,11 @@ class Skeleton:
     def _from_LN_name(cls, skid, name, annotations=None, **kwargs):
         class_, seg_side = name.split(' ')
         if seg_side.endswith('l') or seg_side.endswith('r'):
-            side = Side.from_string(seg_side[-1])
-            seg = Segment.from_string(seg_side[:-1])
+            side = Side.from_str(seg_side[-1])
+            seg = Segment.from_str(seg_side[:-1])
         else:
-            side = Side.NONE
-            seg = Segment.from_string(seg_side)
+            side = Side.UNDEFINED
+            seg = Segment.from_str(seg_side)
 
         return cls(
             skid, name,
@@ -209,7 +352,7 @@ class Skeleton:
         number, class_, side = name.split()
         return cls(
             skid, name,
-            Side.from_string(side), Segment.NONE,
+            Side.from_str(side), Segment.UNDEFINED,
             ['{} {}'.format(number, class_)],
             [number, class_],
             annotations
@@ -218,8 +361,8 @@ class Skeleton:
     @classmethod
     def _from_cho_name(cls, skid, name, annotations=None, **kwargs):
         name, seg_side = name.split()
-        seg = Segment.from_string(seg_side[:-1])
-        side = Side.from_string(seg_side[-1])
+        seg = Segment.from_str(seg_side[:-1])
+        side = Side.from_str(seg_side[-1])
 
         classes = [name]
         superclasses = ["chordotonal"]
@@ -249,35 +392,104 @@ class Skeleton:
         Skeleton
         """
         d = {
-            key: one_hot_decode(pd.DataFrame.read_hdf(path, group_key + key))
+            key: one_hot_decode(pd.read_hdf(path, hdf_join(group_key, key)))
             for key in ["classes", "superclasses", "annotations"]
         }
 
-        for idx, row in pd.DataFrame.read_hdf(path, group_key + "skeletons"):
+        for row in pd.read_hdf(path, hdf_join(group_key, "skeletons")).itertuples(index=False):
             yield cls(
-                row["id"],
-                row["name"],
-                Side.from_string(row["side"]),
-                Segment.from_string(row["segment"]),
-                d["classes"].get(idx),
-                d["superclasses"].get(idx),
-                d["annotations"].get(idx)
+                row.id,
+                row.name,
+                Side.from_str(row.side),
+                Segment.from_str(row.segment),
+                d["classes"].get(row.id),
+                d["superclasses"].get(row.id),
+                d["annotations"].get(row.id)
             )
+
+
+class SkeletonGroup(CircuitNode):
+    r = random.Random(time.time())
+
+    def __init__(self, skeletons: Iterable[Skeleton]=None, ignore_none=False):
+        self.skeletons = frozenset(skeletons or [])
+        sides = set()
+        segments = set()
+        class_groups = set()
+
+        classes = set()
+        superclasses = set()
+        annotations = set()
+
+        for skel in self.skeletons:
+            sides.add(skel.side)
+            segments.add(skel.segment)
+            class_groups.add(tuple(sorted(skel.classes)))
+            classes.update(skel.classes)
+            superclasses.update(skel.superclasses)
+            annotations.update(skel.annotations)
+
+        self._sides = frozenset(sides)
+        self._segments = frozenset(segments)
+        self._class_groups = frozenset(class_groups)
+
+        super().__init__(
+            self._get_id(), None,
+            Side.from_group(sides, ignore_none),
+            Segment.from_group(segments, ignore_none),
+            classes, superclasses, annotations
+        )
+
+    def create_name(self):
+        segside = self.segment.value + self.side.value
+        classes = ', '.join(' '.join(sorted(grp)) for grp in sorted(self._class_groups))
+        return f'{classes} {segside}' if segside else classes
+
+    def __hash__(self):
+        return hash(tuple(skel for skel in self.skeletons))
+
+    def _get_id(self):
+        return self.r.randint(0, 2**64-1)
+
+    def __contains__(self, item):
+        if isinstance(item, Skeleton):
+            return item in self.skeletons
+
+        try:
+            return int(item) in {skel.id for skel in self.skeletons}
+        except (TypeError, ValueError) as e:
+            raise ValueError from e
+
+    def union(self, *others, ignore_none=False):
+        skels = set(self.skeletons)
+        for other in others:
+            if isinstance(other, Skeleton):
+                skels.add(other)
+            elif isinstance(other, SkeletonGroup):
+                skels.update(other.skeletons)
+            else:
+                raise TypeError("Only Skeleton and SkeletonGroup instances can be added")
+        return type(self)(skels, ignore_none)
+
+    def __iter__(self):
+        return iter(self.skeletons)
 
 
 def one_hot_encode(categorical_data: Dict[int, Iterable]):
     """"""
-    categories = sorted(set(chain.from_iterable(categorical_data.values())))
+    all_categories = sorted(set(
+        chain.from_iterable(categorical_data.values())
+    ))
     out = dict()
     for key, value in categorical_data.items():
-        out[key] = {cat: cat in value for cat in categories}
+        out[key] = {cat: cat in value for cat in all_categories}
     return out
 
 
 def one_hot_decode(table):
     d = dict()
     for idx, row in table.iterrows():
-        d[idx] = compress(list(table), row)
+        d[idx] = list(compress(list(table), row))
     return d
 
 
@@ -315,3 +527,9 @@ def skeletons_to_tables(skeletons: Iterable[Skeleton]) -> Dict[str, pd.DataFrame
         key: pd.DataFrame.from_dict(data, orient="index")
         for key, data in data_dicts.items()
     }
+
+
+def edge_name(src, tgt, tex=USE_TEX):
+    arrow = r'$\rightarrow$' if tex else '->'
+    crossing = Crossing.from_skeletons(src, tgt)
+    return f'{src} {arrow} {tgt} {str(crossing).upper()}'

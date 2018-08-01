@@ -149,3 +149,12 @@ class LinearAreaCalculator(AreaCalculator):
     def calculate(self):
         # todo: see https://github.com/clbarnes/linear_skeleton
         raise NotImplementedError()
+
+
+def hdf_join(path, *args):
+    """Like os.path.join, but for HDF5 hierarchies"""
+    for arg in args:
+        path = path.rstrip('/')
+        arg = arg.lstrip('/')
+        path += '/' + arg
+    return path

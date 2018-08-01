@@ -41,5 +41,12 @@ Reasons for deprecation:
 - Information about the contained edges are serialised in pytables format in `/tables/connectors`
 - Clefts are labelled with a 1px brush but may still need skeletonising
 - Image data is lossless from N5 export
-- Used in `LN-basin`
 - File names are `"data_{n}.hdf5"`
+- Areas are stored in pytables-serialised dataframes in `table.hdf5`
+    - `connectors` group contains edge information, including area
+    - `skeletons` group contains several tables sharing an index:
+        - `skeletons` group contains ID, name, side, segment
+        - `classes` group contains one-hot encoded neuron classes
+        - `superclasses` group contains one-hot encoded superclasses
+        - `annoations` group contains one-hot encoded annotations
+- Used in `LN-basin`

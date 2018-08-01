@@ -1,5 +1,8 @@
 numpy
 h5py
+pandas
+networkx
+scipy
 smalldataviewer
 catpy
 coordinates

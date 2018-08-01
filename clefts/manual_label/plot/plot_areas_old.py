@@ -1,5 +1,3 @@
-import math
-
 import os
 
 import pandas as pd
@@ -20,6 +18,7 @@ from clefts.manual_label.constants import CHO_BASIN_DIR, ORN_PN_DIR
 from clefts.manual_label.common import (
     ConnRow, SkelRow, ROIRow, dict_to_namedtuple, SkelConnRoiDFs, dfs_from_dir
 )
+from clefts.manual_label.plot.stats_utils import freedman_diaconis_rule
 
 logger = logging.getLogger(__name__)
 logging.getLogger("matplotlib").propagate = False
@@ -283,33 +282,15 @@ def frac_vs_area(g_single, path=None, show=True, fig_ax=None, name=None, **kwarg
     )
 
 
-def filter_graph(g, pre_pattern, post_pattern):
+def filter_graph(g, pre_pattern=None, post_pattern=None):
     g2 = g.copy()
     for pre, post in g.edges():
-        pre_match = re.search(pre_pattern, g.node[pre]["skel_name"])
-        post_match = re.search(post_pattern, g.node[post]["skel_name"])
+        pre_match = True if pre_pattern is None else re.search(pre_pattern, g.node[pre]["skel_name"])
+        post_match = True if post_pattern is None else re.search(post_pattern, g.node[post]["skel_name"])
         if not pre_match or not post_match:
             g2.remove_edge(pre, post)
 
     return g2
-
-
-def sturges_rule(values):
-    return math.ceil(1 + np.log2(len(values)))
-
-
-def square_root_choice(values):
-    return math.ceil(np.sqrt(len(values)))
-
-
-def rice_rule(values):
-    return math.ceil(2 * len(values)**(1/3))
-
-
-def freedman_diaconis_rule(values):
-    iqr = stats.iqr(values)
-    bin_width = 2 * iqr / len(values)**(1/3)
-    return math.ceil(np.ptp(values) / bin_width)
 
 
 def plot_area_histogram(multigraph, path=None, show=True, fig_ax=None, name=None):
