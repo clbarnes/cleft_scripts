@@ -2,9 +2,9 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.stats import norm
 
-from manual_label.plot.base_plot import BasePlot
-from manual_label.plot.constants import USE_TEX
-from manual_label.plot.stats_utils import freedman_diaconis_rule
+from clefts.manual_label.plot.plot_classes.base_plot import BasePlot
+from clefts.manual_label.plot.constants import USE_TEX
+from clefts.manual_label.plot.stats_utils import freedman_diaconis_rule
 
 
 class AreaHistogramPlot(BasePlot):

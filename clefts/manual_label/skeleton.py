@@ -17,7 +17,7 @@ from typing import Iterable, Dict
 from pathlib import Path
 
 from clefts.manual_label.plot.constants import USE_TEX
-from manual_label.common import hdf_join
+from clefts.manual_label.common import hdf_join
 
 
 class StrEnum(Enum):
@@ -444,6 +444,10 @@ class SkeletonGroup(CircuitNode):
         segside = self.segment.value + self.side.value
         classes = ', '.join(' '.join(sorted(grp)) for grp in sorted(self._class_groups))
         return f'{classes} {segside}' if segside else classes
+
+    @property
+    def name(self):
+        return str(self)
 
     def __hash__(self):
         return hash(tuple(skel for skel in self.skeletons))

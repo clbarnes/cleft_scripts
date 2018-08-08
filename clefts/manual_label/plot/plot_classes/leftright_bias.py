@@ -1,21 +1,18 @@
-import itertools
-import os
-
 import numpy as np
 import logging
 import networkx as nx
-from matplotlib import pyplot as plt
 
 from clefts.manual_label.plot.plot_utils import multidigraph_to_digraph
 from clefts.manual_label.plot.constants import USE_TEX
 from clefts.manual_label.skeleton import SkeletonGroup, edge_name
-from manual_label.plot.base_plot import BasePlot
+from .base_plot import BasePlot
 
 logger = logging.getLogger(__name__)
 
 
 def bias(n1, n2):
-    return (n1 / (n1 + n2) - 0.5) * 2
+    # return (n1 / (n1 + n2) - 0.5) * 2  # the same as below
+    return (n1 - n2) / (n1 + n2)
 
 
 class LeftRightBiasPlot(BasePlot):

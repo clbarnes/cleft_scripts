@@ -4,6 +4,7 @@ pandas
 networkx
 scipy
 smalldataviewer
+matplotlib
 catpy
 coordinates
 git@github.com:clbarnes/cremi_python.git@n5

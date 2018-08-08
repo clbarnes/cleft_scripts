@@ -7,9 +7,9 @@ import networkx as nx
 from matplotlib import pyplot as plt
 from typing import Optional
 
-from manual_label.plot.constants import USE_TEX
-from manual_label.plot.plot_utils import filter_graph_nodes, filter_graph_edges
-from manual_label.skeleton import CircuitNode, Side
+from clefts.manual_label.plot.constants import USE_TEX
+from clefts.manual_label.plot.plot_utils import filter_graph_nodes, filter_graph_edges
+from clefts.manual_label.skeleton import CircuitNode, Side
 
 
 class BasePlot(metaclass=ABCMeta):
