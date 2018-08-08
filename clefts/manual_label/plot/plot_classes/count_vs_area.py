@@ -48,7 +48,6 @@ class CountVsAreaPlot(BasePlot):
         r2 = 1 - residuals[0] / np.sum((area_arr - area_arr.mean()) ** 2)
 
         unc_gradient, intercept, r_value, _, _ = stats.linregress(count_arr, area_arr)
-        unc_r2 = r_value ** 2
 
         fig, ax_arr = self._fig_ax(fig_ax_arr, figsize=(10, 8))
         ax = ax_arr.flatten()[0]
@@ -81,7 +80,7 @@ class CountVsAreaPlot(BasePlot):
                 x, x * unc_gradient + intercept,
                 color="orange", linestyle="--",
                 label=r'linear best fit \newline $y = ({})x {}$ \newline $R^2 = {:.3f}$'.format(
-                    latex_float(unc_gradient), ensure_sign(latex_float(intercept)), unc_r2
+                    latex_float(unc_gradient), ensure_sign(latex_float(intercept)), r_value**2
                 )
             )
             ax.text(

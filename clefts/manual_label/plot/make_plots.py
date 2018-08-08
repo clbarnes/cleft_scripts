@@ -1,13 +1,17 @@
-from pathlib import Path
+import networkx as nx
+import logging
 
 import matplotlib
 matplotlib.rcParams["text.usetex"] = True  # noqa
 
 from clefts.manual_label.constants import ORN_PN_DIR, TABLE_FNAME, LN_BASIN_DIR, CHO_BASIN_DIR
 from clefts.manual_label.plot.plot_classes import (
-    CountVsAreaPlot, LeftRightBiasPlot, AreaHistogramPlot,
-    FracVsAreaPlot)
-from clefts.manual_label.plot.plot_utils import hdf5_to_multidigraph, contract_skeletons_multi
+    CountVsAreaPlot, LeftRightBiasPlot, AreaHistogramPlot, FracVsAreaPlot,
+    ExcitationInhibitionPlot)
+from clefts.manual_label.plot.plot_utils import hdf5_to_multidigraph, contract_skeletons_multi, merge_multi
+
+
+logger = logging.getLogger(__name__)
 
 plot_classes = [
     LeftRightBiasPlot,
@@ -16,9 +20,32 @@ plot_classes = [
 ]
 
 
-def all_plots_for_system(dirpath: Path, name: str, **kwargs):
-    hdf_path = dirpath / TABLE_FNAME
-    multi_g = hdf5_to_multidigraph(hdf_path)
+datasets = {
+    "chordotonal-Basin": CHO_BASIN_DIR,
+    "LN-Basin": LN_BASIN_DIR,
+    "ORN-PN": ORN_PN_DIR
+}
+
+
+def get_data(name):
+    hdf_path = datasets[name] / TABLE_FNAME
+    return hdf5_to_multidigraph(hdf_path)
+
+
+def get_merged_basin():
+    cho_basin_g = get_data("chordotonal-Basin")
+    nx.set_edge_attributes(cho_basin_g, 1, "drive")
+    nx.set_edge_attributes(cho_basin_g, "chordotonal-Basin", "system")
+
+    ln_basin_g = get_data("LN-Basin")
+    nx.set_edge_attributes(ln_basin_g, -1, "drive")
+    nx.set_edge_attributes(ln_basin_g, "LN-Basin", "system")
+
+    return merge_multi(cho_basin_g, ln_basin_g)
+
+
+def all_plots_for_system(name: str, **kwargs):
+    multi_g = get_data(name)
     for plot_class in plot_classes:
         plot_obj = plot_class(multi_g, name)
         plot_obj.plot(**kwargs)
@@ -27,8 +54,7 @@ def all_plots_for_system(dirpath: Path, name: str, **kwargs):
 def cho_basin_plots(**kwargs):
     """N.B. collapse identical chos"""
     name = "chordotonal-Basin"
-    hdf_path = CHO_BASIN_DIR / TABLE_FNAME
-    multi_g = hdf5_to_multidigraph(hdf_path)
+    multi_g = get_data(name)
 
     to_contract = set()
     for skid, data in multi_g.nodes(data=True):
@@ -55,14 +81,22 @@ def cho_basin_plots(**kwargs):
     plot_obj.plot(**kwargs)
 
 
+def ln_cho_basin_plot(**kwargs):
+    multi_g = get_merged_basin()
+    plot_obj = ExcitationInhibitionPlot(multi_g, "chordotonal/LN-Basin")
+    plot_obj.plot(**kwargs)
+
+
 def orn_pn_plots(**kwargs):
-    all_plots_for_system(ORN_PN_DIR, "ORN-PN", **kwargs)
+    all_plots_for_system("ORN-PN", **kwargs)
 
 
 def ln_basin_plots(**kwargs):
-    all_plots_for_system(LN_BASIN_DIR, "LN-Basin", **kwargs)
+    all_plots_for_system("LN-Basin", **kwargs)
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     # orn_pn_plots()
-    ln_basin_plots()
+    # ln_basin_plots()
+    ln_cho_basin_plot()

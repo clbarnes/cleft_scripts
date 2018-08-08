@@ -63,13 +63,20 @@ def multidigraph_to_digraph(g_multi):
     g_single.graph.update(deepcopy(g_multi.graph))
 
     g_single.add_nodes_from(g_multi.nodes.items())
-    for pre_skid, post_skid, data in g_multi.edges(data=True):
+    for pre_skid, post_skid, m_data in g_multi.edges(data=True):
         if not (pre_skid, post_skid) in g_single.edges:
-            g_single.add_edge(pre_skid, post_skid, area=0, count=0, edges=[], crossing=data["crossing"])
+            g_single.add_edge(
+                pre_skid, post_skid, area=0, count=0, edges=[], crossing=m_data["crossing"],
+                drive=m_data.get("drive"), systems=set()
+            )
 
-        g_single.edges[pre_skid, post_skid]["area"] += data["area"]
-        g_single.edges[pre_skid, post_skid]["count"] += 1
-        g_single.edges[pre_skid, post_skid]["edges"].append(deepcopy(data))
+        s_data = g_single.edges[pre_skid, post_skid]
+        s_data["area"] += m_data["area"]
+        s_data["count"] += 1
+        s_data["edges"].append(deepcopy(m_data))
+        s_data["systems"].add(m_data["system"])
+        if s_data["drive"] != m_data["drive"]:  # either everything has drive, or nothing does
+            s_data["drive"] = 0
 
     return g_single
 
@@ -140,6 +147,32 @@ def contract_skeletons_single(g_single: nx.DiGraph, skeleton_groups: Iterable[It
             crossings.append(existing_crossing)
         g.edges[pre_id, post_id]["crossing"] = Crossing.from_group(*crossings, ignore_none=True)
 
+    return g
+
+
+def contract_identical(g):
+    if isinstance(g, nx.MultiDiGraph):
+        contractor = contract_skeletons_multi
+    elif isinstance(g, nx.DiGraph):
+        contractor = contract_skeletons_single
+    else:
+        raise TypeError("Argument should be an instance of networkx.DiGraph")
+
+    to_contract = set()
+    for skid, data in g.nodes(data=True):
+        skel = data["obj"]
+        to_contract.add(frozenset(skel.find_copies(g.graph["skeletons"]) + [skel]))
+    return contractor(g, to_contract)
+
+
+def merge_multi(*graphs):
+    g = nx.MultiDiGraph()
+    g.graph["skeletons"] = set()
+    for graph in graphs:
+        graph = deepcopy(graph)
+        g.graph["skeletons"].update(graph.graph["skeletons"])
+        g.add_nodes_from(graph.nodes(data=True))
+        g.add_edges_from(graph.edges(data=True))
     return g
 
 

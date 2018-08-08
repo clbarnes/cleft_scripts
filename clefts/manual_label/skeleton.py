@@ -33,6 +33,7 @@ class StrEnum(Enum):
         return str(self.value)
 
 
+@functools.total_ordering
 class Side(StrEnum):
     RIGHT = "r"
     LEFT = "l"
@@ -79,7 +80,14 @@ class Side(StrEnum):
         else:
             return cls.UNDEFINED
 
+    def __lt__(self, other):
+        if not isinstance(other, type(self)):
+            return NotImplemented
 
+        return str(self) < str(other)
+
+
+@functools.total_ordering
 class Segment(StrEnum):
     UNDEFINED = ""
     T1 = "t1"
@@ -122,6 +130,20 @@ class Segment(StrEnum):
             return segments.pop()
         else:
             return cls.UNDEFINED
+
+    def part_num(self):
+        if self == type(self).UNDEFINED:
+            return None
+        part = self.value[0]
+        num = int(self.value[1:])
+        return part, num
+
+    def __lt__(self, other):
+        if not isinstance(other, type(self)):
+            return NotImplemented
+
+        values = list(type(self))
+        return values.index(self) < values.index(other)
 
 
 @functools.total_ordering
@@ -191,6 +213,7 @@ class CircuitNode(metaclass=ABCMeta):
         return self.create_name()
 
 
+@functools.total_ordering
 class Crossing(StrEnum):
     UNDEFINED = ""
     IPSI = "ipsi"
@@ -240,6 +263,12 @@ class Crossing(StrEnum):
             return cls.IPSILATERAL
         else:
             return cls.UNDEFINED
+
+    def __lt__(self, other):
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        values = list(type(self))
+        return values.index(self) < values.index(other)
 
 
 class Skeleton(CircuitNode):
@@ -409,8 +438,6 @@ class Skeleton(CircuitNode):
 
 
 class SkeletonGroup(CircuitNode):
-    r = random.Random(time.time())
-
     def __init__(self, skeletons: Iterable[Skeleton]=None, ignore_none=False):
         self.skeletons = frozenset(skeletons or [])
         sides = set()
@@ -450,10 +477,11 @@ class SkeletonGroup(CircuitNode):
         return str(self)
 
     def __hash__(self):
-        return hash(tuple(skel for skel in self.skeletons))
+        return hash(self.skeletons)
 
     def _get_id(self):
-        return self.r.randint(0, 2**64-1)
+        r = random.Random(hash(self))
+        return r.randint(0, 2**64-1)
 
     def __contains__(self, item):
         if isinstance(item, Skeleton):
@@ -469,10 +497,8 @@ class SkeletonGroup(CircuitNode):
         for other in others:
             if isinstance(other, Skeleton):
                 skels.add(other)
-            elif isinstance(other, SkeletonGroup):
-                skels.update(other.skeletons)
             else:
-                raise TypeError("Only Skeleton and SkeletonGroup instances can be added")
+                skels.update(other)
         return type(self)(skels, ignore_none)
 
     def __iter__(self):
