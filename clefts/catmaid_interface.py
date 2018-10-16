@@ -337,8 +337,17 @@ class CircuitConnectorAPI(CatmaidClientApplication):
             for skid in skeleton_ids
         }
 
+    def get_detected_synapses_between(self, *skeleton_ids, workflow_id=None):
+        data = {"skeleton_ids": skeleton_ids}
+        if workflow_id is not None:
+            data["workflow_id"] = workflow_id
 
-def get_catmaid(credentials_path=CREDENTIALS_PATH):
+        return pd.DataFrame(
+            **self.post(("ext", "synapsesuggestor", "analysis", self.project_id, "between"), data=data)
+        )
+
+
+def get_catmaid(credentials_path=CREDENTIALS_PATH) -> CircuitConnectorAPI:
     return CircuitConnectorAPI(CatmaidClient.from_json(credentials_path))
 
 

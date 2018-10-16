@@ -1,4 +1,4 @@
-"""Used for ORN-PN data"""
+"""Convert v2-annotated clefts into an HDF5-serialised table with areas. Used for ORN-PN data"""
 import os
 import numpy as np
 import json
@@ -9,6 +9,7 @@ import pandas as pd
 import traceback
 from tqdm import tqdm
 
+from clefts.manual_label.area_calculator import LinearAreaCalculator
 from cremi import CremiFile
 
 from clefts.manual_label.constants import SPECIAL_INTS, PX_AREA, ORN_PN_DIR, RESOLUTION
@@ -172,13 +173,14 @@ def edges_to_labels(annotations, canvas, edges):
 
 
 def count_px(arr, ignore=tuple(SPECIAL_INTS)):
-    labels = np.unique(arr)
-    output = dict()
-    for label in tqdm(labels, desc="counting labelled px"):
-        if label in ignore:
-            continue
-        output[label] = (arr == label).sum()
-    return output
+    return LinearAreaCalculator(arr).calculate()
+    # labels = np.unique(arr)
+    # output = dict()
+    # for label in tqdm(labels, desc="counting labelled px"):
+    #     if label in ignore:
+    #         continue
+    #     output[label] = (arr == label).sum()
+    # return output
 
 
 def conn_areas_from_file(path):
@@ -190,9 +192,13 @@ def conn_areas_from_file(path):
 
     edge_labels = edges_to_labels(annotations, canvas, set(zip(conn_df["pre_tnid"], conn_df["post_tnid"])))
 
-    counts = count_px(canvas)
+    area_dict = LinearAreaCalculator(canvas).calculate()
     areas = [
-        counts[edge_labels[(int(row["pre_tnid"]), int(row["post_tnid"]))]] * PX_AREA
+        area_dict[
+            edge_labels[
+                (int(row["pre_tnid"]), int(row["post_tnid"]))
+            ]
+        ]
         for _, row in conn_df.iterrows()
     ]
     conn_df["area"] = areas
@@ -203,13 +209,17 @@ def conn_areas_from_dir(path):
     dfs = []
     errors = dict()
     for fname in tqdm(os.listdir(path), desc="parsing cremi files"):
-        if not fname.endswith(".hdf5") or fname.endswith("table.hdf5"):
+        logger.debug("Addressing %s", fname)
+        fpath = os.path.join(path, fname)
+        if not os.path.isfile(fpath) or not fname.endswith(".hdf5") or "table" in fname:
+            logger.debug("Non-HDF5 or table file, skipping")
             continue
         if example and "_{}.hdf5".format(example) not in fname:
+            logger.debug("Only processing example %s, skipping", example)
             continue
 
         try:
-            this_df = conn_areas_from_file(os.path.join(path, fname))
+            this_df = conn_areas_from_file(fpath)
             dfs.append(this_df)
         except AssertionError as e:
             msg = ''.join(traceback.format_exc())
@@ -217,6 +227,7 @@ def conn_areas_from_dir(path):
             errors[fname] = msg
 
     if errors:
+        logger.critical("%s errors found, see errors.json", len(errors))
         with open(ORN_PN_DIR / 'errors.json', 'w') as f:
             json.dump(errors, f, indent=2, sort_keys=True)
 
@@ -249,7 +260,13 @@ def df_to_monolothic_hdf5(df, skeletons_path, out_path):
     df.to_hdf(out_path, key="table")
 
 
+def main():
+    logger.info("Starting area calculation for v2")
+
+    df = conn_areas_from_dir(ORN_PN_DIR)
+    df_to_monolothic_hdf5(df, ORN_PN_DIR / "skeletons.json", ORN_PN_DIR / "table_noskel.hdf5")
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    df = conn_areas_from_dir(ORN_PN_DIR)
-    df_to_monolothic_hdf5(df, ORN_PN_DIR / "skeletons.json", ORN_PN_DIR / "table.hdf5")
+    main()

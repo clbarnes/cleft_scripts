@@ -1,3 +1,4 @@
+"""Convert v2-annotated clefts into an HDF5-serialised table with areas. Used for LN-basin data"""
 import json
 import logging
 import os
@@ -9,15 +10,18 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from clefts.manual_label.common import SkeletonAreaCalculator
+from clefts.manual_label.area_calculator import LinearAreaCalculator
 from clefts.constants import Dataset
 from clefts.manual_label.constants import LN_BASIN_DIR
 from clefts.manual_label.skeleton import Skeleton, skeletons_to_tables
 from cremi import CremiFile
 
 
-def calculate_area(arr: np.array):
-    return SkeletonAreaCalculator(arr).calculate()
+logger = logging.getLogger(__name__)
+
+
+def calculate_area(arr: np.ndarray):
+    return LinearAreaCalculator(arr).calculate()
 
 
 def edges_to_labels(annotations, pre_to_conn):
@@ -115,7 +119,13 @@ def conn_areas_to_hdf5(df, skeletons_path, out_path):
         table.to_hdf(out_path, key='skeletons/' + key)
 
 
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+def main():
+    logger.info("Starting area calculation for v3")
+
     df = conn_areas_from_dir(LN_BASIN_DIR)
     conn_areas_to_hdf5(df, LN_BASIN_DIR / "skeletons.json", LN_BASIN_DIR / "table.hdf5")
+
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+    main()

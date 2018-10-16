@@ -66,16 +66,16 @@ def multidigraph_to_digraph(g_multi):
     for pre_skid, post_skid, m_data in g_multi.edges(data=True):
         if not (pre_skid, post_skid) in g_single.edges:
             g_single.add_edge(
-                pre_skid, post_skid, area=0, count=0, edges=[], crossing=m_data["crossing"],
-                drive=m_data.get("drive"), systems=set()
+                pre_skid, post_skid, area=0, count=0, edges=[], crossing=m_data.get("crossing"),
+                drive=m_data.get("drive", 0), systems=set()
             )
 
         s_data = g_single.edges[pre_skid, post_skid]
         s_data["area"] += m_data["area"]
         s_data["count"] += 1
         s_data["edges"].append(deepcopy(m_data))
-        s_data["systems"].add(m_data["system"])
-        if s_data["drive"] != m_data["drive"]:  # either everything has drive, or nothing does
+        s_data["systems"].add(m_data.get("system"))
+        if s_data["drive"] != m_data.get("drive"):  # either everything has drive, or nothing does
             s_data["drive"] = 0
 
     return g_single

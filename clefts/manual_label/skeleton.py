@@ -342,7 +342,7 @@ class Skeleton(CircuitNode):
             return cls._from_LN_name(skid, name, annotations, **kwargs)
         if " ORN " in name or " PN " in name:
             return cls._from_ORN_PN_name(skid, name, annotations, **kwargs)
-        if re.match(r"^[lv]\'?ch.+\sa1[lr]$", name):
+        if re.match(r"^[lv]\'?ch.*\sa1[lr]$", name):
             return cls._from_cho_name(skid, name, annotations, **kwargs)
 
         raise ValueError(f"Could not infer skeleton information from name '{name}' and given annotations")
@@ -542,9 +542,11 @@ def skeletons_to_tables(skeletons: Iterable[Skeleton]) -> Dict[str, pd.DataFrame
     """
     skel_data = dict()
     for skel in skeletons:
-        d = skel.to_dict()
         skel_data[skel.id] = {
-            attr: d[attr] for attr in ["id", "name", "side", "segment"]
+            "id": skel.id,
+            "name": skel.name,
+            "side": str(skel.side),
+            "segment": str(skel.segment),
         }
 
     data_dicts = {"skeletons": skel_data}
