@@ -3,12 +3,14 @@ from matplotlib import pyplot as plt
 from scipy.stats import norm
 
 from clefts.manual_label.plot.plot_classes.base_plot import BasePlot
-from clefts.manual_label.plot.constants import USE_TEX
+from clefts.manual_label.plot.constants import USE_TEX, DEFAULT_EXT
 from clefts.manual_label.plot.stats_utils import freedman_diaconis_rule
 
 
 class AreaHistogramPlot(BasePlot):
-    def plot(self, path=None, tex=USE_TEX, show=True, fig_ax_arr=None, **kwargs):
+    title_base = "Synaptic area distribution"
+
+    def plot(self, directory=None, tex=USE_TEX, show=True, fig_ax_arr=None, ext=DEFAULT_EXT, **kwargs):
         areas = [data["area"] for _, _, data in self.graph.edges(data=True)]
 
         fig, ax_arr = self._fig_ax(fig_ax_arr)
@@ -46,4 +48,4 @@ class AreaHistogramPlot(BasePlot):
 
         plt.tight_layout()
 
-        self._save_show(path, show, fig)
+        self._save_show(directory, show, fig, ext)

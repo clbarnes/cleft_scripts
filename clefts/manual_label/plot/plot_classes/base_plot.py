@@ -1,26 +1,45 @@
-import numpy as np
 import os
+import logging
 import itertools
-
+from datetime import datetime
 from abc import ABCMeta, abstractmethod
+from typing import Optional, Union
+
+import numpy as np
 import networkx as nx
 from matplotlib import pyplot as plt
-from typing import Optional
 
-from clefts.manual_label.plot.constants import USE_TEX
+from clefts.manual_label.constants import Circuit
+from clefts.manual_label.plot.constants import USE_TEX, TOKEN_CHARS, DEFAULT_EXT
 from clefts.manual_label.plot.plot_utils import filter_graph_nodes, filter_graph_edges
 from clefts.manual_label.skeleton import CircuitNode, Side
 
 
-class BasePlot(metaclass=ABCMeta):
-    def __init__(self, graph: nx.MultiDiGraph, name=''):
-        self.graph = graph
-        self.name = name
+def tokenize(s):
+    s = str(s).lower().replace(' ', '_').replace('/', '_')
+    return ''.join(c for c in s if c in TOKEN_CHARS)
 
-    def _save_show(self, path: Optional[os.PathLike], show: bool, fig: plt.Figure):
-        if path:
-            os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
-            fig.savefig(path)
+
+class BasePlot(metaclass=ABCMeta):
+    def __init__(self, graph: nx.MultiDiGraph, name: Union[str, Circuit]=''):
+        self.logger = logging.getLogger(f"{type(self).__name__}")
+        self.graph = graph
+        self.name = str(name)
+        self.logger.info("Creating plot object for " + self.name)
+
+    @property
+    def plot_name(self):
+        return tokenize(self.title_base)
+
+    def _save_show(self, directory: Optional[os.PathLike], show: bool, fig: plt.Figure, ext: str=DEFAULT_EXT):
+        if directory:
+            directory = os.path.join(directory, self.plot_name)
+            name = tokenize(self.name)
+            if name:
+                directory = os.path.join(directory, name)
+            os.makedirs(directory or '.', exist_ok=True)
+            fname = f"{self.plot_name}{'_' + name if name else ''}_{datetime.now().isoformat()}.{ext or 'svg'}"
+            fig.savefig(os.path.join(directory, fname))
         if show:
             plt.show()
 
@@ -33,12 +52,12 @@ class BasePlot(metaclass=ABCMeta):
         return fig, ax_arr
 
     @abstractmethod
-    def plot(self, path=None, tex=USE_TEX, show=True, fig_ax_arr=None, **kwargs):
+    def plot(self, directory=None, tex=USE_TEX, show=True, fig_ax_arr=None, ext=DEFAULT_EXT, **kwargs):
         pass
 
     def _filter_unilateral_nodes(self):
         def has_partner(skel: CircuitNode):
-            return skel.side != Side.UNDEFINED and bool(
+            return skel.side and bool(
                 skel.find_mirrors(self.obj_set())
             )
 

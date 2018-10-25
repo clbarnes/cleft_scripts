@@ -3,7 +3,7 @@ import logging
 import networkx as nx
 
 from clefts.manual_label.plot.plot_utils import multidigraph_to_digraph
-from clefts.manual_label.plot.constants import USE_TEX
+from clefts.manual_label.plot.constants import USE_TEX, DEFAULT_EXT
 from clefts.manual_label.skeleton import SkeletonGroup, edge_name
 from .base_plot import BasePlot
 
@@ -16,6 +16,8 @@ def bias(n1, n2):
 
 
 class LeftRightBiasPlot(BasePlot):
+    title_base = "Left/Right bias"
+
     def __init__(self, graph: nx.MultiDiGraph, name=None):
         super().__init__(graph, name)
         self.graph = multidigraph_to_digraph(graph)
@@ -24,7 +26,7 @@ class LeftRightBiasPlot(BasePlot):
 
         self.name = name
 
-    def plot(self, path=None, tex=USE_TEX, show=True, fig_ax_arr=None, **kwargs):
+    def plot(self, directory=None, tex=USE_TEX, show=True, fig_ax_arr=None, ext=DEFAULT_EXT, **kwargs):
         edge_pairs = self.get_edge_pairs()
 
         count_bias = []
@@ -83,4 +85,4 @@ class LeftRightBiasPlot(BasePlot):
             excluded_str = "Excluded unilateral edges:\n" + '\n'.join(unilateral_labels)
             fig.text(0.5, 0.02, excluded_str)
 
-        self._save_show(path, show, fig)
+        self._save_show(directory, show, fig, ext)

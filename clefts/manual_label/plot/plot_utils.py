@@ -20,7 +20,7 @@ def always_false(*args, **kwargs):
 def filter_graph_edges(g: nx.DiGraph, filter_fn: Callable) -> nx.DiGraph:
     g2 = deepcopy(g)
     for pre, post in g.edges:
-        if not filter_fn(g2.node[pre]["skeleton"], g2.node[post]["skeleton"]):
+        if not filter_fn(g2.node[pre]["obj"], g2.node[post]["obj"]):
             g2.remove_edge(pre, post)
 
     return g2
@@ -29,7 +29,7 @@ def filter_graph_edges(g: nx.DiGraph, filter_fn: Callable) -> nx.DiGraph:
 def filter_graph_nodes(g: nx.DiGraph, filter_fn: Callable) -> nx.DiGraph:
     g2 = deepcopy(g)
     for node, data in g.nodes(data=True):
-        if not filter_fn(data["skeleton"]):
+        if not filter_fn(data["obj"]):
             g2.remove_node(node)
             g2.graph["skeletons"].discard(data["skeleton"])
     return g2
@@ -81,7 +81,12 @@ def multidigraph_to_digraph(g_multi):
     return g_single
 
 
-def contract_skeletons_multi(g_multi: nx.MultiDiGraph, skeleton_groups: Iterable[Iterable[Skeleton]]):
+def all_edges(g: nx.MultiDiGraph, pre, post):
+    return {key: data for _, tgt, key, data in g.edges(pre, data=True, keys=True) if tgt == post}
+
+
+def contract_skeletons_multi(g_multi: nx.MultiDiGraph, skeleton_groups: Iterable[Iterable[Skeleton]]) -> nx.MultiDiGraph:
+    """Contracts groups of skeletons into single nodes, but does not collapse their edges into a single edge"""
     skid_mapping = dict()
     for group in skeleton_groups:
         if not isinstance(group, SkeletonGroup):
@@ -89,28 +94,30 @@ def contract_skeletons_multi(g_multi: nx.MultiDiGraph, skeleton_groups: Iterable
         for skel in group:
             skid_mapping[skel.id] = group
 
-    g = nx.MultiDiGraph()
-    g.graph.update(deepcopy(g_multi.graph))
+    g_contracted = nx.MultiDiGraph()
+    g_contracted.graph.update(deepcopy(g_multi.graph))
 
     for node, data in g_multi.nodes(data=True):
         group = skid_mapping.get(node)
         if group:
-            g.add_node(group.id, skeleton_group=group, skeleton=None, obj=group)
+            g_contracted.add_node(group.id, skeleton_group=group, skeleton=None, obj=group)
         else:
-            g.add_node(node, **data)
+            g_contracted.add_node(node, **data)
 
     for pre_skid, post_skid, data in g_multi.edges(data=True):
         pre_id = pre_skid if pre_skid not in skid_mapping else skid_mapping[pre_skid].id
         post_id = post_skid if post_skid not in skid_mapping else skid_mapping[post_skid].id
 
-        crossings = [Crossing.from_sides(g.node[pre_id]["obj"].side, g.node[post_id]["obj"].side)]
-        existing_crossing = g_multi.edges[pre_id, post_id].get("crossing")
+        crossings = [Crossing.from_sides(g_contracted.node[pre_id]["obj"].side, g_contracted.node[post_id]["obj"].side)]
+        existing_crossing = data.get("crossing")
         if existing_crossing:
             crossings.append(existing_crossing)
 
-        g.add_edge(pre_id, post_id, area=data["area"], crossing=Crossing.from_group(*crossings, ignore_none=True))
+        g_contracted.add_edge(
+            pre_id, post_id, area=data["area"], crossing=Crossing.from_group(crossings, ignore_none=True)
+        )
 
-    return g
+    return g_contracted
 
 
 def contract_skeletons_single(g_single: nx.DiGraph, skeleton_groups: Iterable[Iterable[Skeleton]]):

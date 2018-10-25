@@ -1,5 +1,4 @@
 import functools
-import time
 from itertools import chain, compress
 
 import pandas as pd
@@ -10,27 +9,14 @@ import json
 import random
 import re
 from abc import ABCMeta, abstractmethod
-from enum import Enum
 from io import TextIOBase
 from json import JSONDecodeError
-from typing import Iterable, Dict
+from typing import Iterable, Dict, Optional
 from pathlib import Path
 
+from clefts.common import StrEnum
 from clefts.manual_label.plot.constants import USE_TEX
 from clefts.manual_label.common import hdf_join
-
-
-class StrEnum(Enum):
-    @classmethod
-    @abstractmethod
-    def from_str(cls, s):
-        if isinstance(s, cls):
-            return s
-
-        raise ValueError(f"{repr(s)} could not be interpreted as a {cls.__name__}")
-
-    def __str__(self):
-        return str(self.value)
 
 
 @functools.total_ordering
@@ -44,16 +30,19 @@ class Side(StrEnum):
 
     @classmethod
     def from_str(cls, s):
-        if isinstance(s, cls):
-            return s
-        elif not s:
-            return cls.UNDEFINED
-        elif s.lower() in {'r', 'right'}:
-            return cls.RIGHT
-        elif s.lower() in {'l', 'left'}:
-            return cls.LEFT
-        else:
-            raise ValueError(f"{repr(s)} could not be interpreted as a {cls.__name__}")
+        if not s:
+            s = ""
+
+        if isinstance(s, str):
+            s = {
+                'r': 'r',
+                'l': 'l',
+                'right': 'r',
+                'left': 'l',
+                '': ''
+            }[s.strip().lower()]
+
+        return cls(s)
 
     def opposite(self):
         tp = type(self)
@@ -106,17 +95,13 @@ class Segment(StrEnum):
 
     @classmethod
     def from_str(cls, s):
-        if isinstance(s, cls):
-            return s
-        elif s is None:
-            return cls.UNDEFINED
+        if not s:
+            s = ''
 
-        segment_dict = {seg.value: seg for seg in cls}
+        if isinstance(s, str):
+            s = s.lower().strip()
 
-        try:
-            return segment_dict[s.lower()]
-        except KeyError:
-            raise ValueError(f"{repr(s)} could not be interpreted as a {cls.__name__}")
+        return cls(s)
 
     @classmethod
     def from_group(cls, segments, ignore_none=False):
@@ -149,7 +134,7 @@ class Segment(StrEnum):
 @functools.total_ordering
 class CircuitNode(metaclass=ABCMeta):
     def __init__(
-            self, skid, name: str, side: Side, segment: Segment,
+            self, skid, name: Optional[str], side: Side, segment: Segment,
             classes: Iterable=None, superclasses: Iterable=None,
             annotations=None
     ):
@@ -159,7 +144,7 @@ class CircuitNode(metaclass=ABCMeta):
         self.classes = frozenset(item.lower() for item in classes) if classes else frozenset()
         self.superclasses = frozenset(item.lower() for item in superclasses) if superclasses else frozenset()
         self.annotations = frozenset(annotations) if annotations else frozenset()
-        self.name = name or self.create_name()
+        self._name = name or self.create_name()
 
     @abstractmethod
     def create_name(self) -> str:
@@ -209,8 +194,12 @@ class CircuitNode(metaclass=ABCMeta):
             ["side", "segment", "classes", "superclasses"]
         ])
 
+    @property
+    def name(self):
+        return self._name
+
     def __str__(self):
-        return self.create_name()
+        return self.name
 
 
 @functools.total_ordering
@@ -273,7 +262,7 @@ class Crossing(StrEnum):
 
 class Skeleton(CircuitNode):
     def __str__(self):
-        return self.name
+        return self._name
 
     def __hash__(self):
         return hash(self.id)
@@ -468,13 +457,12 @@ class SkeletonGroup(CircuitNode):
         )
 
     def create_name(self):
+        skel_names = {str(skel) for skel in self.skeletons}
+        if len(skel_names) == 1:
+            return skel_names.pop()
         segside = self.segment.value + self.side.value
         classes = ', '.join(' '.join(sorted(grp)) for grp in sorted(self._class_groups))
         return f'{classes} {segside}' if segside else classes
-
-    @property
-    def name(self):
-        return str(self)
 
     def __hash__(self):
         return hash(self.skeletons)

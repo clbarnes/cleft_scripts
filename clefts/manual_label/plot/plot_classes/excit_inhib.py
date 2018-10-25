@@ -4,7 +4,7 @@ import logging
 import numpy as np
 from scipy import stats
 
-from clefts.manual_label.plot.constants import USE_TEX
+from clefts.manual_label.plot.constants import USE_TEX, DEFAULT_EXT
 from clefts.manual_label.plot.plot_utils import latex_float, ensure_sign
 from .base_plot import BasePlot
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class ExcitationInhibitionPlot(BasePlot):
     title_base = "Inhibitory/excitatory count and area"
 
-    def plot(self, path=None, tex=USE_TEX, show=True, fig_ax_arr=None, **kwargs):
+    def plot(self, directory=None, tex=USE_TEX, show=True, fig_ax_arr=None, ext=DEFAULT_EXT, **kwargs):
         skels = {}
         data_template = {
             "count": {"exc": 0, "inh": 0},
@@ -77,6 +77,6 @@ class ExcitationInhibitionPlot(BasePlot):
             ax.legend()
 
         fig.tight_layout()
-        self._save_show(path, show, fig)
+        self._save_show(directory, show, fig, ext)
 
 

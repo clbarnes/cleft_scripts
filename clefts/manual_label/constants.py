@@ -1,12 +1,27 @@
 from pathlib import Path
 import numpy as np
+
+from clefts.common import StrEnum
 from clefts.constants import RESOLUTION
 
 
+class Circuit(StrEnum):
+    ORN_PN = 'ORN-PN'
+    LN_BASIN = 'LN-Basin'
+    CHO_BASIN = 'cho-Basin'
+
+
 MANUAL_CLEFTS_DIR = Path("/data2/manual_clefts")
-CHO_BASIN_DIR = MANUAL_CLEFTS_DIR / "cho-basin"
-ORN_PN_DIR = MANUAL_CLEFTS_DIR / "82a_45a_ORN-PN"
-LN_BASIN_DIR = MANUAL_CLEFTS_DIR / "LN-basin"
+
+DATA_DIRS = {
+    Circuit.ORN_PN: MANUAL_CLEFTS_DIR / "82a_45a_ORN-PN",
+    Circuit.LN_BASIN: MANUAL_CLEFTS_DIR / "LN-basin",
+    Circuit.CHO_BASIN: MANUAL_CLEFTS_DIR / "cho-basin",
+}
+
+CHO_BASIN_DIR = DATA_DIRS[Circuit.CHO_BASIN]
+ORN_PN_DIR = DATA_DIRS[Circuit.ORN_PN]
+LN_BASIN_DIR = DATA_DIRS[Circuit.LN_BASIN]
 
 TRANSPARENT = np.iinfo("uint64").max
 INVALID = TRANSPARENT - 1

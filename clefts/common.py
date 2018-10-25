@@ -1,5 +1,7 @@
 import math
 import logging
+from abc import abstractmethod
+from enum import Enum
 
 from clefts.constants import DIMS, RESOLUTION, TRANSLATION, CoordZYX
 
@@ -154,3 +156,11 @@ def resolve_padding(padding_low=0, padding_high=None, fn=None, *args, **kwargs):
         return padding_low, padding_high
     else:
         return fn(padding_low, *args, **kwargs), fn(padding_high, *args, **kwargs)
+
+
+class StrEnum(Enum):
+    def __str__(self):
+        return str(self.value)
+
+    def __bool__(self):
+        return bool(self.value)
