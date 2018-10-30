@@ -35,7 +35,7 @@ def filter_graph_nodes(g: nx.DiGraph, filter_fn: Callable) -> nx.DiGraph:
     return g2
 
 
-def hdf5_to_multidigraph(path):
+def hdf5_to_multidigraph(path, circuit=None):
     connectors = pd.read_hdf(path, "connectors")
     g = nx.MultiDiGraph()
     g.graph["skeletons"] = set()
@@ -46,6 +46,7 @@ def hdf5_to_multidigraph(path):
 
     for row in connectors.itertuples(index=False):
         d = row._asdict()
+        d["circuit"] = circuit
         crossing = Crossing.from_skeletons(
             g.node[row.pre_skid]["skeleton"],
             g.node[row.post_skid]["skeleton"]

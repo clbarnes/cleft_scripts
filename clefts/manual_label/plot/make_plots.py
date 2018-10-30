@@ -4,6 +4,7 @@ import logging
 import matplotlib
 
 from clefts.constants import PACKAGE_ROOT
+from clefts.manual_label.plot.plot_classes.compare_area_violin import CompareAreaViolinPlot
 
 matplotlib.rcParams["text.usetex"] = True  # noqa
 
@@ -13,7 +14,7 @@ from clefts.manual_label.plot.plot_classes import (
     ExcitationInhibitionPlot)
 from clefts.manual_label.plot.plot_utils import hdf5_to_multidigraph, contract_skeletons_multi, merge_multi
 
-
+logging.getLogger("matplotlib").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 plot_classes = [
@@ -30,12 +31,18 @@ datasets = {
 }
 
 
-def get_data(circuit: Circuit):
+def get_data(circuit: Circuit) -> nx.MultiDiGraph:
+    """Returns graph with one edge per treenode-treenode connection"""
     hdf_path = DATA_DIRS[circuit] / TABLE_FNAME
-    return hdf5_to_multidigraph(hdf_path)
+    return hdf5_to_multidigraph(hdf_path, circuit)
+
+
+def get_merged_all() -> nx.MultiDiGraph:
+    return merge_multi(*(get_data(circuit) for circuit in list(Circuit)))
 
 
 def get_merged_basin():
+    # todo: replace "system" with "circuit"
     cho_basin_g = get_data(Circuit.CHO_BASIN)
     nx.set_edge_attributes(cho_basin_g, 1, "drive")
     nx.set_edge_attributes(cho_basin_g, "chordotonal-Basin", "system")
@@ -100,14 +107,22 @@ def ln_basin_plots(**kwargs):
     all_plots_for_system(Circuit.LN_BASIN, **kwargs)
 
 
+def compare_syn_area(**kwargs):
+    g = get_merged_all()
+    plot = CompareAreaViolinPlot(g, "Combined")
+    plot.plot(**kwargs)
+
+
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    # logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     kwargs = {
         "directory": PACKAGE_ROOT / "manual_label" / "figs",
         "ext": 'pdf',
-        "show": False
+        "show": True
     }
-    orn_pn_plots(**kwargs)
-    ln_basin_plots(**kwargs)
-    cho_basin_plots(**kwargs)
-    ln_cho_basin_plot(**kwargs)
+    # orn_pn_plots(**kwargs)
+    # ln_basin_plots(**kwargs)
+    # cho_basin_plots(**kwargs)
+    # ln_cho_basin_plot(**kwargs)
+    compare_syn_area(**kwargs)

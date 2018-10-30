@@ -3,11 +3,13 @@ import logging
 import itertools
 from datetime import datetime
 from abc import ABCMeta, abstractmethod
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
 import numpy as np
 import networkx as nx
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.axes import Axes
 
 from clefts.manual_label.constants import Circuit
 from clefts.manual_label.plot.constants import USE_TEX, TOKEN_CHARS, DEFAULT_EXT
@@ -21,6 +23,8 @@ def tokenize(s):
 
 
 class BasePlot(metaclass=ABCMeta):
+    SEED = 1
+
     def __init__(self, graph: nx.MultiDiGraph, name: Union[str, Circuit]=''):
         self.logger = logging.getLogger(f"{type(self).__name__}")
         self.graph = graph
@@ -43,7 +47,7 @@ class BasePlot(metaclass=ABCMeta):
         if show:
             plt.show()
 
-    def _fig_ax(self, fig_ax_arr=None, nrows=1, ncols=1, **kwargs):
+    def _fig_ax(self, fig_ax_arr=None, nrows=1, ncols=1, **kwargs) -> Tuple[Figure, np.ndarray]:
         if fig_ax_arr:
             fig, ax_arr = fig_ax_arr
             ax_arr = ax_arr if isinstance(ax_arr, np.ndarray) else np.array([[ax_arr]])
