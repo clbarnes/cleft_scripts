@@ -1,13 +1,17 @@
+from collections import defaultdict
+
 import json
 import logging
 
 import psycopg2
+from functools import lru_cache
+from numbers import Number
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
 
 from catpy import CatmaidClient
-from catpy.client import CatmaidClientApplication
+from catpy.applications.base import CatmaidClientApplication
 
 from clefts.common import offset_shape_to_dicts
 from clefts.constants import DB_CREDENTIALS_PATH, CREDENTIALS_PATH, PROJECT_ID
@@ -33,6 +37,7 @@ def subdivide_roi(offset, shape, max_volume):
 
 
 class CircuitConnectorAPI(CatmaidClientApplication):
+    @lru_cache(1)
     def _get_all_annotations(self):
         return self.post((self.project_id, 'annotations/'))['annotations']
 
@@ -346,6 +351,19 @@ class CircuitConnectorAPI(CatmaidClientApplication):
             **self.post(("ext", "synapsesuggestor", "analysis", self.project_id, "between"), data=data)
         )
 
+    def get_contributor_statistics(self, *skids):
+        data = {"skids": list(skids)}
+        return self.post((self.project_id, "skeleton", "contributor_statistics_multiple"), data)
+
+    def get_contributor_statistics_single(self, *skids):
+        d = defaultdict(lambda: 0)
+        for skid in skids:
+            data = self.get((self.project_id, "skeleton", skid, "contributor_statistics"))
+            for k, v in data.items():
+                if not isinstance(v, Number):
+                    continue
+                d[k] += v
+        return d
 
 def get_catmaid(credentials_path=CREDENTIALS_PATH) -> CircuitConnectorAPI:
     return CircuitConnectorAPI(CatmaidClient.from_json(credentials_path))

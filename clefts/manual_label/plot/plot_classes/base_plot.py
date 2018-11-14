@@ -31,6 +31,9 @@ class BasePlot(metaclass=ABCMeta):
         self.name = str(name)
         self.logger.info("Creating plot object for " + self.name)
 
+    def get_title(self, title=None):
+        return title or self.title_base + (f" ({self.name})" if self.name else '')
+
     @property
     def plot_name(self):
         return tokenize(self.title_base)

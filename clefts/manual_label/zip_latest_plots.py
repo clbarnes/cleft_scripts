@@ -14,7 +14,7 @@ from clefts.constants import PACKAGE_ROOT
 
 logger = logging.getLogger("__name__")
 
-timestamp_re = re.compile(r"^(?P<prefix>.+)(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+)(?P<suffix>\.\w+)$")
+timestamp_re = re.compile(r"^(?P<prefix>.+)(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+)(?P<suffix>.*)\.\w+$")
 
 timestamp = datetime.now().isoformat()
 

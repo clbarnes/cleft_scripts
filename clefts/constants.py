@@ -10,7 +10,8 @@ DIMS = 'zyx'
 CoordZYX = spaced_coordinate('Coord', DIMS)
 
 # CREDENTIALS_PATH = Path.home() / '.secrets' / 'catmaid' / 'catsop_from_pogo.json'
-CREDENTIALS_PATH = Path.home() / '.secrets' / 'catmaid' / 'catsop.json'
+# CREDENTIALS_PATH = Path.home() / '.secrets' / 'catmaid' / 'catsop.json'
+CREDENTIALS_PATH = Path.home() / '.secrets' / 'catmaid' / 'neurocean.json'
 DB_CREDENTIALS_PATH = Path.home() / '.secrets' / 'catmaid' / 'catsop_db.json'
 PACKAGE_ROOT = Path(__file__).absolute().parent
 PROJECT_ROOT = PACKAGE_ROOT.parent

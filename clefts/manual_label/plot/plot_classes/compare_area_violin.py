@@ -69,7 +69,9 @@ def draw_p_brackets(
     combs : which combinations of samples to compare (default: all combinations)
     centers : x-values of the samples in the plot (default [1, 2, 3, ...])
     bracket_offset_ppn : what proportion of the whole data's range should be used to offset comparison brackets
-    min_bracket_height_ppn :
+    min_bracket_height_ppn : what proportion of the whole data's range should be used as the minimum
+        vertical tick on the bracket. The tick over the shorter sample will extend further in order to reach it.
+        If None, no vertical ticks (over either)
     fs : fontsize
 
     Returns
@@ -78,7 +80,8 @@ def draw_p_brackets(
     """
     data_ptp = (max(max(s) for s in data) - min(min(s) for s in data))
     bracket_offset = data_ptp * bracket_offset_ppn
-    bracket_height = data_ptp * min_bracket_height_ppn
+    no_bracket = min_bracket_height_ppn is None
+    bracket_height = data_ptp * (min_bracket_height_ppn or 0)
 
     p_fn = p_fn or ranksum
     centers = centers or list(range(1, len(data) + 1))
@@ -105,6 +108,10 @@ def draw_p_brackets(
         bracket_x = [centers[idx1], centers[idx1], centers[idx2], centers[idx2]]
         bracket_y = [bracket_lminy, bracket_maxy, bracket_maxy, bracket_rminy]
 
+        if no_bracket:
+            bracket_x = bracket_x[1:-1]
+            bracket_y = bracket_y[1:-1]
+
         pstr = pformat(p_fn(data1, data2))
 
         line = ax.plot(bracket_x, bracket_y, c='k')
@@ -118,7 +125,7 @@ def draw_p_brackets(
         texts[(idx1, idx2)] = text
 
     ymin, _ = ax.get_ylim()
-    ax.set_ylim(ymin, max(highest_over.values()) + 3*bracket_height)
+    ax.set_ylim(ymin, max(highest_over.values()) + 3*bracket_offset)
 
     sorted_lines = []
     sorted_texts = []
@@ -129,7 +136,7 @@ def draw_p_brackets(
     return sorted_lines, sorted_texts
 
 
-# todo: per edge? probably not enough edges
+# todo: per edge? probably not enough synapses per edge
 class CompareAreaViolinPlot(BasePlot):
     title_base = "Cross-system comparison of synapse size"
 
@@ -169,7 +176,7 @@ class CompareAreaViolinPlot(BasePlot):
         else:
             ax.set_ylabel("synapse area ($nm^2$)")
 
-        draw_p_brackets(dataset, ranksum, ax, list(combinations(range(3), 2)))
+        draw_p_brackets(dataset, ranksum, ax, list(combinations(range(3), 2)), **kwargs)
 
         ax.set_xlabel("circuit")
         ax.set_title(self.title_base)

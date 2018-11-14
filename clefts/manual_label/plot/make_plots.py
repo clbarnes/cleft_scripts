@@ -4,6 +4,7 @@ import logging
 import matplotlib
 
 from clefts.constants import PACKAGE_ROOT
+from clefts.dist_fit import NormalVsLognormal
 from clefts.manual_label.plot.plot_classes.compare_area_violin import CompareAreaViolinPlot
 
 matplotlib.rcParams["text.usetex"] = True  # noqa
@@ -11,7 +12,7 @@ matplotlib.rcParams["text.usetex"] = True  # noqa
 from clefts.manual_label.constants import ORN_PN_DIR, TABLE_FNAME, LN_BASIN_DIR, CHO_BASIN_DIR, DATA_DIRS, Circuit
 from clefts.manual_label.plot.plot_classes import (
     CountVsAreaPlot, LeftRightBiasPlot, AreaHistogramPlot, FracVsAreaPlot,
-    ExcitationInhibitionPlot)
+    ExcitationInhibitionPlot, ContactNumberHeatMap, SynapticAreaHeatMap, NormalisedDiffHeatMap)
 from clefts.manual_label.plot.plot_utils import hdf5_to_multidigraph, contract_skeletons_multi, merge_multi
 
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
@@ -20,7 +21,8 @@ logger = logging.getLogger(__name__)
 plot_classes = [
     LeftRightBiasPlot,
     CountVsAreaPlot,
-    AreaHistogramPlot
+    AreaHistogramPlot,
+    ContactNumberHeatMap, SynapticAreaHeatMap, NormalisedDiffHeatMap,
 ]
 
 
@@ -113,16 +115,28 @@ def compare_syn_area(**kwargs):
     plot.plot(**kwargs)
 
 
+def syn_area_distribution():
+    n = len(list(Circuit))
+    for circuit in Circuit:
+        g = get_data(circuit)
+        data = [data["area"] for _, _, data in g.edges(data=True)]
+        # bonferroni-corrected p-value
+        print(f"{circuit}: {NormalVsLognormal.from_data(data, 0.05/n)}")
+
+
 if __name__ == '__main__':
     # logging.basicConfig(level=logging.INFO)
     logging.basicConfig(level=logging.DEBUG)
+
     kwargs = {
         "directory": PACKAGE_ROOT / "manual_label" / "figs",
         "ext": 'pdf',
-        "show": True
+        "show": False
     }
-    # orn_pn_plots(**kwargs)
-    # ln_basin_plots(**kwargs)
-    # cho_basin_plots(**kwargs)
-    # ln_cho_basin_plot(**kwargs)
+    orn_pn_plots(**kwargs)
+    ln_basin_plots(**kwargs)
+    cho_basin_plots(**kwargs)
+    ln_cho_basin_plot(**kwargs)
     compare_syn_area(**kwargs)
+
+    syn_area_distribution()
