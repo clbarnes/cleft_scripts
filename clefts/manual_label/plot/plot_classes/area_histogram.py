@@ -10,7 +10,15 @@ from clefts.manual_label.plot.stats_utils import freedman_diaconis_rule
 class AreaHistogramPlot(BasePlot):
     title_base = "Synaptic area distribution"
 
-    def plot(self, directory=None, tex=USE_TEX, show=True, fig_ax_arr=None, ext=DEFAULT_EXT, **kwargs):
+    def plot(
+        self,
+        directory=None,
+        tex=USE_TEX,
+        show=True,
+        fig_ax_arr=None,
+        ext=DEFAULT_EXT,
+        **kwargs,
+    ):
         areas = [data["area"] for _, _, data in self.graph.edges(data=True)]
 
         fig, ax_arr = self._fig_ax(fig_ax_arr)
@@ -32,19 +40,21 @@ class AreaHistogramPlot(BasePlot):
             mean, variance
         )
 
-        ax.plot(x, y, 'k--', linewidth=1, label=fit_label)
+        ax.plot(x, y, "k--", linewidth=1, label=fit_label)
 
         perc5, perc95 = distribution.ppf([0.05, 0.95])
-        ax.axvline(perc5, color='orange', linestyle=':', label="90\% interval")
-        ax.axvline(perc95, color='orange', linestyle=':')
+        ax.axvline(perc5, color="orange", linestyle=":", label="90\% interval")
+        ax.axvline(perc95, color="orange", linestyle=":")
 
         ax.set_xlabel("log syn. area ($log_{10}(nm^2)$)")
         ax.set_ylabel("frequency")
-        ax.set_title("Histogram of synaptic areas" + (f' ({self.name})' if self.name else ''))
+        ax.set_title(
+            "Histogram of synaptic areas" + (f" ({self.name})" if self.name else "")
+        )
         ax.set_xlim(3, 5)
         ax.set_ylim(0, 50)
 
-        ax.legend(loc='upper left')
+        ax.legend(loc="upper left")
 
         plt.tight_layout()
 

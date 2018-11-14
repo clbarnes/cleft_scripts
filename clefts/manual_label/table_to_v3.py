@@ -13,12 +13,17 @@ SKELETONS = CHO_BASIN_DIR / "skeletons.json"
 
 
 def copy_connectors(old_path, new_path):
-    df = pd.read_hdf(old_path, 'table')
-    df = df.drop([
-        'pre_skel_name', 'post_skel_name',
-        'pre_skel_name_mirror', 'post_skel_name_mirror'
-    ], axis="columns")
-    df.to_hdf(new_path, 'connectors')
+    df = pd.read_hdf(old_path, "table")
+    df = df.drop(
+        [
+            "pre_skel_name",
+            "post_skel_name",
+            "pre_skel_name_mirror",
+            "post_skel_name_mirror",
+        ],
+        axis="columns",
+    )
+    df.to_hdf(new_path, "connectors")
 
 
 def insert_skeletons(skeleton_path, new_path):
@@ -26,7 +31,7 @@ def insert_skeletons(skeleton_path, new_path):
 
     skel_tables = skeletons_to_tables(id_to_obj.values())
     for key, table in skel_tables.items():
-        table.to_hdf(new_path, key='skeletons/' + key)
+        table.to_hdf(new_path, key="skeletons/" + key)
 
 
 def main():
@@ -39,6 +44,6 @@ def main():
         insert_skeletons(skeletons, new_table)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     main()

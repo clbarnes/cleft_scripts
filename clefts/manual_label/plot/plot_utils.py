@@ -48,12 +48,9 @@ def hdf5_to_multidigraph(path, circuit=None):
         d = row._asdict()
         d["circuit"] = circuit
         crossing = Crossing.from_skeletons(
-            g.node[row.pre_skid]["skeleton"],
-            g.node[row.post_skid]["skeleton"]
+            g.node[row.pre_skid]["skeleton"], g.node[row.post_skid]["skeleton"]
         )
-        g.add_edge(
-            row.pre_skid, row.post_skid, crossing=crossing, **d
-        )
+        g.add_edge(row.pre_skid, row.post_skid, crossing=crossing, **d)
 
     return g
 
@@ -67,8 +64,14 @@ def multidigraph_to_digraph(g_multi):
     for pre_skid, post_skid, m_data in g_multi.edges(data=True):
         if not (pre_skid, post_skid) in g_single.edges:
             g_single.add_edge(
-                pre_skid, post_skid, area=0, count=0, edges=[], crossing=m_data.get("crossing"),
-                drive=m_data.get("drive", 0), systems=set()
+                pre_skid,
+                post_skid,
+                area=0,
+                count=0,
+                edges=[],
+                crossing=m_data.get("crossing"),
+                drive=m_data.get("drive", 0),
+                systems=set(),
             )
 
         s_data = g_single.edges[pre_skid, post_skid]
@@ -76,17 +79,25 @@ def multidigraph_to_digraph(g_multi):
         s_data["count"] += 1
         s_data["edges"].append(deepcopy(m_data))
         s_data["systems"].add(m_data.get("system"))
-        if s_data["drive"] != m_data.get("drive"):  # either everything has drive, or nothing does
+        if s_data["drive"] != m_data.get(
+            "drive"
+        ):  # either everything has drive, or nothing does
             s_data["drive"] = 0
 
     return g_single
 
 
 def all_edges(g: nx.MultiDiGraph, pre, post):
-    return {key: data for _, tgt, key, data in g.edges(pre, data=True, keys=True) if tgt == post}
+    return {
+        key: data
+        for _, tgt, key, data in g.edges(pre, data=True, keys=True)
+        if tgt == post
+    }
 
 
-def contract_skeletons_multi(g_multi: nx.MultiDiGraph, skeleton_groups: Iterable[Iterable[Skeleton]]) -> nx.MultiDiGraph:
+def contract_skeletons_multi(
+    g_multi: nx.MultiDiGraph, skeleton_groups: Iterable[Iterable[Skeleton]]
+) -> nx.MultiDiGraph:
     """Contracts groups of skeletons into single nodes, but does not collapse their edges into a single edge"""
     skid_mapping = dict()
     for group in skeleton_groups:
@@ -101,27 +112,41 @@ def contract_skeletons_multi(g_multi: nx.MultiDiGraph, skeleton_groups: Iterable
     for node, data in g_multi.nodes(data=True):
         group = skid_mapping.get(node)
         if group:
-            g_contracted.add_node(group.id, skeleton_group=group, skeleton=None, obj=group)
+            g_contracted.add_node(
+                group.id, skeleton_group=group, skeleton=None, obj=group
+            )
         else:
             g_contracted.add_node(node, **data)
 
     for pre_skid, post_skid, data in g_multi.edges(data=True):
         pre_id = pre_skid if pre_skid not in skid_mapping else skid_mapping[pre_skid].id
-        post_id = post_skid if post_skid not in skid_mapping else skid_mapping[post_skid].id
+        post_id = (
+            post_skid if post_skid not in skid_mapping else skid_mapping[post_skid].id
+        )
 
-        crossings = [Crossing.from_sides(g_contracted.node[pre_id]["obj"].side, g_contracted.node[post_id]["obj"].side)]
+        crossings = [
+            Crossing.from_sides(
+                g_contracted.node[pre_id]["obj"].side,
+                g_contracted.node[post_id]["obj"].side,
+            )
+        ]
         existing_crossing = data.get("crossing")
         if existing_crossing:
             crossings.append(existing_crossing)
 
         g_contracted.add_edge(
-            pre_id, post_id, area=data["area"], crossing=Crossing.from_group(crossings, ignore_none=True)
+            pre_id,
+            post_id,
+            area=data["area"],
+            crossing=Crossing.from_group(crossings, ignore_none=True),
         )
 
     return g_contracted
 
 
-def contract_skeletons_single(g_single: nx.DiGraph, skeleton_groups: Iterable[Iterable[Skeleton]]):
+def contract_skeletons_single(
+    g_single: nx.DiGraph, skeleton_groups: Iterable[Iterable[Skeleton]]
+):
     skid_mapping = dict()
     for group in skeleton_groups:
         if not isinstance(group, SkeletonGroup):
@@ -141,7 +166,9 @@ def contract_skeletons_single(g_single: nx.DiGraph, skeleton_groups: Iterable[It
 
     for pre_skid, post_skid, data in g_single.edges(data=True):
         pre_id = pre_skid if pre_skid not in skid_mapping else skid_mapping[pre_skid].id
-        post_id = post_skid if post_skid not in skid_mapping else skid_mapping[post_skid].id
+        post_id = (
+            post_skid if post_skid not in skid_mapping else skid_mapping[post_skid].id
+        )
 
         if not (pre_id, post_id) in g_single.edges:
             g.add_edge(pre_id, post_id, area=0, count=0, edges=[])
@@ -149,11 +176,15 @@ def contract_skeletons_single(g_single: nx.DiGraph, skeleton_groups: Iterable[It
         g.edges[pre_id, post_id]["area"] += data["area"]
         g.edges[pre_id, post_id]["count"] += data["count"]
         g.edges[pre_id, post_id]["edges"].append(deepcopy(data["edges"]))
-        crossings = [Crossing.from_sides(g.node[pre_id]["obj"].side, g.node[post_id]["obj"].side)]
+        crossings = [
+            Crossing.from_sides(g.node[pre_id]["obj"].side, g.node[post_id]["obj"].side)
+        ]
         existing_crossing = g_single.edges[pre_id, post_id].get("crossing")
         if existing_crossing:
             crossings.append(existing_crossing)
-        g.edges[pre_id, post_id]["crossing"] = Crossing.from_group(*crossings, ignore_none=True)
+        g.edges[pre_id, post_id]["crossing"] = Crossing.from_group(
+            *crossings, ignore_none=True
+        )
 
     return g
 
@@ -184,7 +215,7 @@ def merge_multi(*graphs):
     return g
 
 
-def latex_float(n, fmt='.2e'):
+def latex_float(n, fmt=".2e"):
     """based on https://stackoverflow.com/a/13490601/2700168"""
     float_str = "{{0:{}}}".format(fmt).format(n)
     if "e" in float_str:
@@ -196,6 +227,6 @@ def latex_float(n, fmt='.2e'):
 
 def ensure_sign(s):
     s = str(s)
-    if s.startswith('-'):
-        return '- ' + s[1:]
-    return '+ ' + s
+    if s.startswith("-"):
+        return "- " + s[1:]
+    return "+ " + s

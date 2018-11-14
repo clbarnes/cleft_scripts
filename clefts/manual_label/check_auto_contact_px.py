@@ -8,10 +8,14 @@ import numpy as np
 from clefts.catmaid_interface import get_catmaid
 from clefts.constants import RESOLUTION
 from clefts.manual_label.plot.make_plots import get_data
-from clefts.manual_label.plot.plot_utils import multidigraph_to_digraph, latex_float, ensure_sign
+from clefts.manual_label.plot.plot_utils import (
+    multidigraph_to_digraph,
+    latex_float,
+    ensure_sign,
+)
 
 
-PX_AREA = RESOLUTION['x'] * RESOLUTION['z']
+PX_AREA = RESOLUTION["x"] * RESOLUTION["z"]
 
 
 def df_to_graph(detected_df: pd.DataFrame) -> nx.DiGraph:
@@ -22,22 +26,26 @@ def df_to_graph(detected_df: pd.DataFrame) -> nx.DiGraph:
         syn_to_skels[row.synapse_object_id].append(row)
         if row.skeleton_id not in g.nodes:
             g.add_node(row.skeleton_id, synapses=dict())
-        g.node[row.skeleton_id]["synapses"][row.synapse_object_id] = row.contact_px * PX_AREA
+        g.node[row.skeleton_id]["synapses"][row.synapse_object_id] = (
+            row.contact_px * PX_AREA
+        )
 
     for this_skid, synapses in g.nodes(data="synapses"):
         for synapse_id, contact_px in synapses.items():
             for row in syn_to_skels[synapse_id]:
                 if row.skeleton_id != this_skid:
                     g.add_edge(
-                        this_skid, row.skeleton_id,
-                        area=row.contact_px * PX_AREA, synapse_object_id=synapse_id,
-                        pre_area=contact_px * PX_AREA
+                        this_skid,
+                        row.skeleton_id,
+                        area=row.contact_px * PX_AREA,
+                        synapse_object_id=synapse_id,
+                        pre_area=contact_px * PX_AREA,
                     )
 
     return multidigraph_to_digraph(g)
 
 
-def manual_auto_scatter(manual, auto, title=None, ax: plt.Axes=None):
+def manual_auto_scatter(manual, auto, title=None, ax: plt.Axes = None):
     if not ax:
         _, ax = plt.subplots()
 
@@ -50,18 +58,24 @@ def manual_auto_scatter(manual, auto, title=None, ax: plt.Axes=None):
 
     ax.scatter(manual, auto)
 
-    coeffs, residuals, rank, singular_values, rcond = np.polyfit(manual, auto, 1, full=True)
+    coeffs, residuals, rank, singular_values, rcond = np.polyfit(
+        manual, auto, 1, full=True
+    )
     x = np.unique(manual)
     y = np.poly1d(coeffs)(x)
 
     f = np.poly1d(coeffs)(manual)
-    ss_tot = np.sum((np.array(auto) - np.mean(y))**2)
-    ss_res = np.sum((np.array(auto) - f)**2)
+    ss_tot = np.sum((np.array(auto) - np.mean(y)) ** 2)
+    ss_res = np.sum((np.array(auto) - f) ** 2)
     r2 = 1 - (ss_res / ss_tot)
 
-    ax.plot(x, y, label=r'linear best fit \newline $y = ({})x {}$ \newline $R^2 = {:.3f}$'.format(
-        latex_float(coeffs[0]), ensure_sign(latex_float(coeffs[1])), r2
-    ))
+    ax.plot(
+        x,
+        y,
+        label=r"linear best fit \newline $y = ({})x {}$ \newline $R^2 = {:.3f}$".format(
+            latex_float(coeffs[0]), ensure_sign(latex_float(coeffs[1])), r2
+        ),
+    )
 
     ax.legend()
 
@@ -107,7 +121,7 @@ def compare_edges(g_manual: nx.DiGraph, g_auto: nx.DiGraph):
     manual_auto_scatter(manual_areas, auto_areas, "Contact area", area_ax)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     catmaid = get_catmaid()
     multi_g = get_data("ORN-PN")
     g_manual = multidigraph_to_digraph(multi_g)

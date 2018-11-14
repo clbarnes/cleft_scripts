@@ -10,12 +10,11 @@ ID_DATASETS = (
     "/annotations/ids",
     "/annotations/comments/target_ids",
     "/annotations/presynaptic_site/partners",
-    "/annotations/presynaptic_site/pre_to_conn"
-    "/complete_segments",
+    "/annotations/presynaptic_site/pre_to_conn" "/complete_segments",
     "/fragment_segment_lut",
     "/volumes/labels/clefts",
     "/volumes/labels/canvas",
-    "/volumes/labels/merged_ids"
+    "/volumes/labels/merged_ids",
 )
 
 
@@ -39,7 +38,7 @@ def _ids_from_arraylikes(*arrs):
 @contextmanager
 def as_hdf5_file(hdf):
     if isinstance(hdf, PathLike):
-        with h5py.File(hdf, 'r') as f:
+        with h5py.File(hdf, "r") as f:
             yield f
     else:
         yield hdf
@@ -48,10 +47,12 @@ def as_hdf5_file(hdf):
 def ensure_file_obj(fn):
     """Decorate for functions whose first argument should be an open h5py.File.
     If a PathLike is passed instead, the file will be opened for the duration of the call."""
+
     @wraps(fn)
     def wrapped(hdf, *args, **kwargs):
         with as_hdf5_file(hdf):
             return fn(hdf, *args, **kwargs)
+
     return wrapped
 
 
@@ -80,10 +81,10 @@ def generate_ids(hdf, exclude=None):
     ids, _ = _ids_from_datasets(hdf, *ID_DATASETS)
     ids.update(exclude or set())
     last = max(ids)
-    for i in range(last+1, SpecialLabel.MAX_ID + 1):
+    for i in range(last + 1, SpecialLabel.MAX_ID + 1):
         ids.add(i)
         yield i
-    for i in range(1, SpecialLabel.MAX_ID+1):
+    for i in range(1, SpecialLabel.MAX_ID + 1):
         if i in ids:
             continue
         ids.add(i)

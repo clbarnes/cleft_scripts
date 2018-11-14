@@ -6,9 +6,7 @@ from tqdm import tqdm
 from clefts.catmaid_interface import get_catmaid
 from clefts.manual_label.constants import Circuit, TABLES_DIR
 
-HEADERS = (
-    "Circuit", "Skeletons", "Nodes", "Presynaptic", "Postsynaptic", "Time"
-)
+HEADERS = ("Circuit", "Skeletons", "Nodes", "Presynaptic", "Postsynaptic", "Time")
 
 
 def fmt_mins(total_mins):
@@ -24,7 +22,7 @@ def skids_to_row(*skids):
         contrib["n_nodes"],
         contrib["n_pre"],
         contrib["n_post"],
-        fmt_mins(contrib["construction_minutes"])
+        fmt_mins(contrib["construction_minutes"]),
     )
     assert len(ret) == len(HEADERS) - 1
     return ret
@@ -33,19 +31,17 @@ def skids_to_row(*skids):
 def join_row(label, *values):
     fmt = "${}$"
     val_strs = [fmt.format(v) if isinstance(v, Number) else v for v in values]
-    return ' & '.join([label] + val_strs)
+    return " & ".join([label] + val_strs)
 
 
 catmaid = get_catmaid()
 
 pre_rows = (
-    "\\begin{tabular}{l|" + "l"*len(HEADERS) + "}",
-    " & ".join(HEADERS) + " \\\\ \\hline"
+    "\\begin{tabular}{l|" + "l" * len(HEADERS) + "}",
+    " & ".join(HEADERS) + " \\\\ \\hline",
 )
 
-post_rows = (
-    "\\end{tabular}",
-)
+post_rows = ("\\end{tabular}",)
 
 rows = list(pre_rows)
 
@@ -58,9 +54,9 @@ for circuit in tqdm(Circuit):
     skids = [skel["skeleton_id"] for skel in skels]
     all_skids.update(skids)
 
-    rows.append(join_row(circuit.tex_short(), *skids_to_row(*skids)) + ' \\\\')
+    rows.append(join_row(circuit.tex_short(), *skids_to_row(*skids)) + " \\\\")
 
-rows[-1] = rows[-1] + ' \\hline'
+rows[-1] = rows[-1] + " \\hline"
 
 total_label = "\\textbf{TOTAL}"
 total_row = join_row(total_label, *skids_to_row(*all_skids))
@@ -68,10 +64,10 @@ total_row = join_row(total_label, *skids_to_row(*all_skids))
 rows.append(total_row)
 rows.extend(post_rows)
 
-s = '\n'.join(rows) + '\n'
+s = "\n".join(rows) + "\n"
 
 timestamp = datetime.now().isoformat()
 
 fpath = TABLES_DIR / f"circuit_stats_{timestamp}.tex"
-with open(fpath, 'w') as f:
+with open(fpath, "w") as f:
     f.write(s)

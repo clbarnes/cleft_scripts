@@ -40,16 +40,15 @@ def edges_to_labels(annotations, pre_to_conn):
     done_labels = set()
     for pre_id, post_id in annotations.pre_post_partners:
         assert pre_id in pre_to_conn, (
-            f"Presynaptic site {pre_id} is not associated "
-            "with a connector ID"
+            f"Presynaptic site {pre_id} is not associated " "with a connector ID"
         )
-        assert pre_id in annotations.comments, (
-            f"Presynaptic site {pre_id} is not associated with a comment"
-        )
+        assert (
+            pre_id in annotations.comments
+        ), f"Presynaptic site {pre_id} is not associated with a comment"
         label = int(annotations.comments[pre_id])
-        assert label not in done_labels, (
-            f"Label {label} is not uniquely associated with a single edge"
-        )
+        assert (
+            label not in done_labels
+        ), f"Label {label} is not uniquely associated with a single edge"
         output[(pre_to_conn[pre_id], post_id)] = label
 
     return output
@@ -83,12 +82,12 @@ def conn_areas_from_dir(dpath: Path):
         try:
             dfs.append(conn_areas_from_file(fpath))
         except AssertionError as e:
-            msg = ''.join(traceback.format_exc())
+            msg = "".join(traceback.format_exc())
             print(msg)
             errors[os.path.split(fpath)] = msg
 
     if errors:
-        with open(dpath / 'errors.json', 'w') as f:
+        with open(dpath / "errors.json", "w") as f:
             json.dump(errors, f, indent=2, sort_keys=True)
 
     return pd.concat(dfs)
@@ -103,7 +102,7 @@ def id_to_skel(skeletons_path):
             id_to_obj[skel_dict["skeleton_id"]] = Skeleton.from_name(
                 skel_dict["skeleton_id"],
                 skel_dict["skeleton_name"],
-                skel_dict["annotations"]
+                skel_dict["annotations"],
             )
 
     return id_to_obj
@@ -116,7 +115,7 @@ def conn_areas_to_hdf5(df, skeletons_path, out_path):
 
     skel_tables = skeletons_to_tables(id_to_obj.values())
     for key, table in skel_tables.items():
-        table.to_hdf(out_path, key='skeletons/' + key)
+        table.to_hdf(out_path, key="skeletons/" + key)
 
 
 def main():
@@ -126,6 +125,6 @@ def main():
     conn_areas_to_hdf5(df, LN_BASIN_DIR / "skeletons.json", LN_BASIN_DIR / "table.hdf5")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     main()

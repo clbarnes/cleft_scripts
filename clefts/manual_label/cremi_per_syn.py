@@ -39,8 +39,17 @@ from cremi import Volume, Annotations
 from cremi.io import CremiFile
 
 from clefts.constants import (
-    STACK_ID, CoordZYX, RESOLUTION, TRANSLATION, DIMS, EXTRUSION_FACTOR, Dataset, PRE_TO_CONN_EXPL,
-    N5_PATH, VOLUME_DS, N5_OFFSET
+    STACK_ID,
+    CoordZYX,
+    RESOLUTION,
+    TRANSLATION,
+    DIMS,
+    EXTRUSION_FACTOR,
+    Dataset,
+    PRE_TO_CONN_EXPL,
+    N5_PATH,
+    VOLUME_DS,
+    N5_OFFSET,
 )
 from clefts.common import center_radius_to_offset_shape
 from clefts.catmaid_interface import CircuitConnectorAPI
@@ -61,17 +70,36 @@ n5_im_fetcher = N5ImageFetcher(N5_PATH, VOLUME_DS, N5_OFFSET)
 
 
 AnnotationTuple = namedtuple("AnnotationTuple", ["id", "type", "location"])
-CremiData = namedtuple("CremiData", [
-    "raw_data", "res_list", "annotation_tuples", "annotation_partners", "offset_nm", "offset_px"
-])
+CremiData = namedtuple(
+    "CremiData",
+    [
+        "raw_data",
+        "res_list",
+        "annotation_tuples",
+        "annotation_partners",
+        "offset_nm",
+        "offset_px",
+    ],
+)
 
 ANNOTATION_VERSION = 3
 
 
 class SynapseImageFetcher:
-    defaults = {"min_pad": 600, "pad_ppn": 1.5}  # nm  # proportion of maximum tn-conn distance
+    defaults = {
+        "min_pad": 600,
+        "pad_ppn": 1.5,
+    }  # nm  # proportion of maximum tn-conn distance
 
-    def __init__(self, output_dir, pre_skel_ids, post_skel_ids, catmaid=catmaid, image_fetcher=im_fetcher, **kwargs):
+    def __init__(
+        self,
+        output_dir,
+        pre_skel_ids,
+        post_skel_ids,
+        catmaid=catmaid,
+        image_fetcher=im_fetcher,
+        **kwargs
+    ):
         self.output_dir = output_dir
         self.pre_skel_ids = pre_skel_ids
         self.post_skel_ids = post_skel_ids
@@ -88,11 +116,19 @@ class SynapseImageFetcher:
         df = self.catmaid.get_synapses_between(self.pre_skel_ids, self.post_skel_ids)
         for side in ["pre", "post"]:
             df[side + "_conn_dist"] = self._paired_distances(
-                df[[side + "_tn_" + dim for dim in DIMS]], df[["conn_" + dim for dim in DIMS]]
+                df[[side + "_tn_" + dim for dim in DIMS]],
+                df[["conn_" + dim for dim in DIMS]],
             )
 
-        df["max_dist"] = np.max(np.vstack((df["pre_conn_dist"], df["post_conn_dist"])), axis=0)
-        df["pad"] = np.max(np.vstack((df["max_dist"] * self.pad_ppn, np.array([self.min_pad] * len(df)))), axis=0)
+        df["max_dist"] = np.max(
+            np.vstack((df["pre_conn_dist"], df["post_conn_dist"])), axis=0
+        )
+        df["pad"] = np.max(
+            np.vstack(
+                (df["max_dist"] * self.pad_ppn, np.array([self.min_pad] * len(df)))
+            ),
+            axis=0,
+        )
 
         return df
 
@@ -123,19 +159,35 @@ class SynapseImageFetcher:
         raw_data = self.get_raw(offset_px, shape_px)
 
         res_list = RESOLUTION.to_list()
-        annotation_tuples = [AnnotationTuple(
-            int(row[side + "_tnid"]),
-            side + "synaptic_site",
-            (CoordZYX({dim: row[side + "_tn_" + dim] for dim in "zyx"}) - offset_nm).to_list(),
-        ) for side in ["pre", "post"]]
+        annotation_tuples = [
+            AnnotationTuple(
+                int(row[side + "_tnid"]),
+                side + "synaptic_site",
+                (
+                    CoordZYX({dim: row[side + "_tn_" + dim] for dim in "zyx"})
+                    - offset_nm
+                ).to_list(),
+            )
+            for side in ["pre", "post"]
+        ]
 
         annotation_partners = int(row["pre_tnid"]), int(row["post_tnid"])
 
-        return CremiData(raw_data, res_list, annotation_tuples, annotation_partners, offset_nm, offset_px)
+        return CremiData(
+            raw_data,
+            res_list,
+            annotation_tuples,
+            annotation_partners,
+            offset_nm,
+            offset_px,
+        )
 
     def _write_cremi_data(self, cremi_data, path, mode="a", **kwargs):
         raw_vol = Volume(cremi_data.raw_data, resolution=cremi_data.res_list)
-        clefts_vol = Volume(np.zeros(cremi_data.raw_data.shape, dtype=np.uint64), resolution=cremi_data.res_list)
+        clefts_vol = Volume(
+            np.zeros(cremi_data.raw_data.shape, dtype=np.uint64),
+            resolution=cremi_data.res_list,
+        )
 
         annotations = Annotations()
         for annotation_tuple in cremi_data.annotation_tuples:
@@ -162,7 +214,10 @@ class SynapseImageFetcher:
         logger.debug("operating on row %s", row)
         cremi_data = self._prepare_cremi_data(row)
 
-        output_path = os.path.join(self.output_dir, "{}-{}.hdf5".format(int(row["conn_id"]), int(row["post_tnid"])))
+        output_path = os.path.join(
+            self.output_dir,
+            "{}-{}.hdf5".format(int(row["conn_id"]), int(row["post_tnid"])),
+        )
 
         self._write_cremi_data(cremi_data, output_path, mode, **dict(row.items()))
 
@@ -181,7 +236,11 @@ class SynapseImageFetcher:
             ymax = max(shape_px["y"], ymax)
             xmax = max(shape_px["x"], xmax)
             z_total += shape_px["z"]
-            offsets[idx] = {"offset_px": offset_px, "shape_px": shape_px, "offset_nm": offset_nm}
+            offsets[idx] = {
+                "offset_px": offset_px,
+                "shape_px": shape_px,
+                "offset_nm": offset_nm,
+            }
 
         raw = np.zeros((z_total, ymax, xmax), dtype=np.uint8)
 
@@ -206,22 +265,25 @@ class SynapseImageFetcher:
 
             for side in ["pre", "post"]:
                 local_coords = (
-                    CoordZYX({dim: row[side + "_tn_" + dim] for dim in "zyx"}) - this_offsets["offset_nm"]
+                    CoordZYX({dim: row[side + "_tn_" + dim] for dim in "zyx"})
+                    - this_offsets["offset_nm"]
                 ).to_list()
                 local_coords[0] += last_z * RESOLUTION["z"]
-                annotations.add_annotation(int(row[side + "_tnid"]), side + "synaptic_site", local_coords)
+                annotations.add_annotation(
+                    int(row[side + "_tnid"]), side + "synaptic_site", local_coords
+                )
 
-            annotations.set_pre_post_partners(int(row["pre_tnid"]), int(row["post_tnid"]))
+            annotations.set_pre_post_partners(
+                int(row["pre_tnid"]), int(row["post_tnid"])
+            )
 
             raw[
-                last_z:last_z + this_offsets["shape_px"]["z"],
-                0:this_offsets["shape_px"]["y"],
-                0:this_offsets["shape_px"]["x"],
-            ] = self.get_raw(
-                this_offsets["offset_px"], this_offsets["shape_px"]
-            )
+                last_z : last_z + this_offsets["shape_px"]["z"],
+                0 : this_offsets["shape_px"]["y"],
+                0 : this_offsets["shape_px"]["x"],
+            ] = self.get_raw(this_offsets["offset_px"], this_offsets["shape_px"])
             last_z += this_offsets["shape_px"]["z"]
-            raw[last_z:last_z + 3, :, :] = divider
+            raw[last_z : last_z + 3, :, :] = divider
             last_z += 3
 
         clefts = np.zeros(raw.shape, dtype=np.uint64)
@@ -239,7 +301,8 @@ class SynapseImageFetcher:
 
         df.to_hdf(path, "tables/connectors")
         for name, this_table in zip(
-            ["stack_offset", "shape_px", "project_offset"], [stack_offsets_rows, px_shapes_rows, project_offsets_rows]
+            ["stack_offset", "shape_px", "project_offset"],
+            [stack_offsets_rows, px_shapes_rows, project_offsets_rows],
         ):
             this_df = pd.DataFrame(this_table, columns=["z", "y", "x"], index=df.index)
             this_df.to_hdf(path, "tables/" + name)
@@ -252,7 +315,9 @@ class SynapseImageFetcher:
 
         for _, row in rows.iterrows():
             offset_px, shape_px = self.row_to_offset_shape_px(row)
-            offset_shapes.append((np.array(offset_px.to_list()), np.array(shape_px.to_list())))
+            offset_shapes.append(
+                (np.array(offset_px.to_list()), np.array(shape_px.to_list()))
+            )
 
         super_offset_px, super_shape_px = get_superroi(*offset_shapes)
         super_offset_nm = super_offset_px * RESOLUTION.to_list() + TRANSLATION.to_list()
@@ -273,21 +338,24 @@ class SynapseImageFetcher:
         for (_, row), (offset_px, shape_px) in tqdm(zipped, desc="fetching data"):
 
             raw_slicing = tuple(
-                slice(o - sup_o, o - sup_o + s) for sup_o, o, s in zip(super_offset_px, offset_px, shape_px)
+                slice(o - sup_o, o - sup_o + s)
+                for sup_o, o, s in zip(super_offset_px, offset_px, shape_px)
             )
 
-            raw_data[raw_slicing] = self.get_raw(CoordZYX(offset_px), CoordZYX(shape_px))
+            raw_data[raw_slicing] = self.get_raw(
+                CoordZYX(offset_px), CoordZYX(shape_px)
+            )
 
-            conn_zyx = - super_offset_nm + [row["conn_" + dim] for dim in 'zyx']
-            post_zyx = - super_offset_nm + [row["post_tn_" + dim] for dim in 'zyx']
+            conn_zyx = -super_offset_nm + [row["conn_" + dim] for dim in "zyx"]
+            post_zyx = -super_offset_nm + [row["post_tn_" + dim] for dim in "zyx"]
             post_id = int(row["post_tnid"])
 
             pre_zyx = make_presynaptic_loc(conn_zyx, post_zyx, EXTRUSION_FACTOR)
             pre_id = id_gen.next()
             pre_to_conn[pre_id] = int(row["conn_id"])
 
-            annotations.add_annotation(pre_id, 'presynaptic_site', list(pre_zyx))
-            annotations.add_annotation(post_id, 'postsynaptic_site', list(post_zyx))
+            annotations.add_annotation(pre_id, "presynaptic_site", list(pre_zyx))
+            annotations.add_annotation(post_id, "postsynaptic_site", list(post_zyx))
             annotations.set_pre_post_partners(pre_id, post_id)
 
         pre_to_conn_arr = np.array(sorted(pre_to_conn.items()), dtype=np.uint64)
@@ -314,18 +382,29 @@ class SynapseImageFetcher:
 
         for idx, row in df.iterrows():
             offset_px, shape_px = self.row_to_offset_shape_px(row)
-            g.add_node(idx,
-                       roi=ROI(offset_px.to_list(), shape_px.to_list(), int(row['pre_skid']), int(row['post_skid'])))
+            g.add_node(
+                idx,
+                roi=ROI(
+                    offset_px.to_list(),
+                    shape_px.to_list(),
+                    int(row["pre_skid"]),
+                    int(row["post_skid"]),
+                ),
+            )
 
-        for (idx1, roi1), (idx2, roi2) in tqdm(combinations(g.nodes(data="roi"), 2), desc="checking overlap"):
+        for (idx1, roi1), (idx2, roi2) in tqdm(
+            combinations(g.nodes(data="roi"), 2), desc="checking overlap"
+        ):
             if roi1.same_skels(roi2) and roi1.intersection_vol(roi2):
                 g.add_edge(idx1, idx2)
 
         components = list(nx.connected_components(g))
-        name_fmt = '{}_{{:0{}}}.hdf5'.format(base_name, len(str(len(components))))
+        name_fmt = "{}_{{:0{}}}.hdf5".format(base_name, len(str(len(components))))
         len(str(components))
         for idx, component in enumerate(tqdm(components, desc="writing components")):
-            self.write_multicremi(df.iloc[sorted(component)], name_fmt.format(idx), mode)
+            self.write_multicremi(
+                df.iloc[sorted(component)], name_fmt.format(idx), mode
+            )
 
     def process_old(self, mode="a"):
         df = self.get_connectors()
@@ -356,8 +435,8 @@ class ChoBasinGetter(SkelInfoGetter):
     output_dir = "cho-basin"
 
     def fetch(self):
-        pre_skel_info = self.catmaid.get_skeletons_by_annotation('a1chos')
-        post_skel_info = self.catmaid.get_skeletons_by_annotation('a1basins')
+        pre_skel_info = self.catmaid.get_skeletons_by_annotation("a1chos")
+        post_skel_info = self.catmaid.get_skeletons_by_annotation("a1basins")
         return {"pre": pre_skel_info, "post": post_skel_info}
 
 
@@ -369,10 +448,14 @@ class OrnPnGetter(SkelInfoGetter):
     def fetch(self):
         pre_skel_info = []
         post_skel_info = []
-        for annotation in ['82a', '45a']:
+        for annotation in ["82a", "45a"]:
             skel_infos = self.catmaid.get_skeletons_by_annotation(annotation)
-            pre_skel_info.extend(skel for skel in skel_infos if "ORN" in skel["skeleton_name"])
-            post_skel_info.extend(skel for skel in skel_infos if "PN" in skel["skeleton_name"])
+            pre_skel_info.extend(
+                skel for skel in skel_infos if "ORN" in skel["skeleton_name"]
+            )
+            post_skel_info.extend(
+                skel for skel in skel_infos if "PN" in skel["skeleton_name"]
+            )
 
         return {"pre": pre_skel_info, "post": post_skel_info}
 
@@ -385,12 +468,14 @@ class PnKcGetter(SkelInfoGetter):  # todo
     def fetch(self):
         assert False, "not sure what IDs we need"
         pre_skel_info = []
-        for annotation in ['1a PN', '42a PN']:
+        for annotation in ["1a PN", "42a PN"]:
             pre_skel_info.extend(self.catmaid.get_skeletons_by_annotation(annotation))
 
         post_skel_ids = [
-            9609048, 15722867,  # KC82 right and left
-            8850802, 5937084  # KC65 right and left
+            9609048,
+            15722867,  # KC82 right and left
+            8850802,
+            5937084,  # KC65 right and left
         ]
         post_skel_info = self.catmaid.get_skeletons_by_id(*post_skel_ids)
         return {"pre": pre_skel_info, "post": post_skel_info}
@@ -403,19 +488,23 @@ class LnBasinGetter(SkelInfoGetter):
 
     def fetch(self):
         pre_skel_info = []
-        for annotation in ['chopaper_LNa', 'chopaper_LNb']:
+        for annotation in ["chopaper_LNa", "chopaper_LNb"]:
             pre_skel_info.extend(self.catmaid.get_skeletons_by_annotation(annotation))
 
         post_skel_info = []
-        for annotation in ['chopaper_basin1', 'chopaper_basin2']:
+        for annotation in ["chopaper_basin1", "chopaper_basin2"]:
             post_skel_info.extend(self.catmaid.get_skeletons_by_annotation(annotation))
 
         return {"pre": pre_skel_info, "post": post_skel_info}
 
 
 def write_cremis(
-        output_root, mode="w-", catmaid=catmaid, image_fetcher=im_fetcher,
-        skel_getter: Type[SkelInfoGetter]=None, **kwargs
+    output_root,
+    mode="w-",
+    catmaid=catmaid,
+    image_fetcher=im_fetcher,
+    skel_getter: Type[SkelInfoGetter] = None,
+    **kwargs
 ):
     output_dir = os.path.join(output_root, skel_getter.output_dir)
     os.makedirs(output_dir)
@@ -426,7 +515,9 @@ def write_cremis(
     pre_skels = [skel["skeleton_id"] for skel in skels["pre"]]
     post_skels = [skel["skeleton_id"] for skel in skels["post"]]
 
-    fetcher = SynapseImageFetcher(output_dir, pre_skels, post_skels, catmaid, image_fetcher, **kwargs)
+    fetcher = SynapseImageFetcher(
+        output_dir, pre_skels, post_skels, catmaid, image_fetcher, **kwargs
+    )
     fetcher.process(os.path.join(output_dir, "data"), mode)
 
 

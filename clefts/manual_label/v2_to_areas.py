@@ -33,7 +33,7 @@ class InvalidDataError(Exception):
         self.problems.append(msg)
 
     def __str__(self):
-        this_str = '\n\t'.join([super().__str__()] + self.problems)
+        this_str = "\n\t".join([super().__str__()] + self.problems)
         return this_str
 
 
@@ -43,7 +43,9 @@ def get_painted_labels(canvas):
     for value in np.unique(canvas):
         if value in SPECIAL_INTS:
             continue
-        painted[value] = (np.array(np.nonzero(canvas == value)).mean(axis=1) * res_zyx)[::-1]
+        painted[value] = (np.array(np.nonzero(canvas == value)).mean(axis=1) * res_zyx)[
+            ::-1
+        ]
 
     return painted
 
@@ -147,11 +149,8 @@ def find_edge_label_associations(edges, comments):
         if remaining == len(unmatched_edges):
             raise InvalidDataError(
                 f"After {n_iters} iterations, no new edge-label matches have been found",
-                [
-                    f"Remaining edge: {e}" for e in unmatched_edges
-                ] + [
-                    f"Remaining label: {label}" for label in unmatched_comments
-                ]
+                [f"Remaining edge: {e}" for e in unmatched_edges]
+                + [f"Remaining label: {label}" for label in unmatched_comments],
             )
 
         n_iters += 1
@@ -165,7 +164,9 @@ def edges_to_labels(annotations, canvas, edges):
     commented = get_commented_labels(annotations)
 
     check_mismatches(painted, commented)
-    comments = {key: int(value) for key, value in annotations.comments.items() if int(value)}
+    comments = {
+        key: int(value) for key, value in annotations.comments.items() if int(value)
+    }
 
     check_edge_comments(edges, comments)
 
@@ -190,15 +191,13 @@ def conn_areas_from_file(path):
         canvas = cremi.file["/volumes/labels/canvas"][:]
         annotations = cremi.read_annotations()
 
-    edge_labels = edges_to_labels(annotations, canvas, set(zip(conn_df["pre_tnid"], conn_df["post_tnid"])))
+    edge_labels = edges_to_labels(
+        annotations, canvas, set(zip(conn_df["pre_tnid"], conn_df["post_tnid"]))
+    )
 
     area_dict = LinearAreaCalculator(canvas).calculate()
     areas = [
-        area_dict[
-            edge_labels[
-                (int(row["pre_tnid"]), int(row["post_tnid"]))
-            ]
-        ]
+        area_dict[edge_labels[(int(row["pre_tnid"]), int(row["post_tnid"]))]]
         for _, row in conn_df.iterrows()
     ]
     conn_df["area"] = areas
@@ -222,13 +221,13 @@ def conn_areas_from_dir(path):
             this_df = conn_areas_from_file(fpath)
             dfs.append(this_df)
         except AssertionError as e:
-            msg = ''.join(traceback.format_exc())
+            msg = "".join(traceback.format_exc())
             print(msg)
             errors[fname] = msg
 
     if errors:
         logger.critical("%s errors found, see errors.json", len(errors))
-        with open(ORN_PN_DIR / 'errors.json', 'w') as f:
+        with open(ORN_PN_DIR / "errors.json", "w") as f:
             json.dump(errors, f, indent=2, sort_keys=True)
 
     return pd.concat(dfs)
@@ -253,7 +252,9 @@ def df_to_monolothic_hdf5(df, skeletons_path, out_path):
             id_to_name[skel_dict["skeleton_id"]] = skel_dict["skeleton_name"]
 
     df["pre_skel_name"] = [id_to_name[int(row["pre_skid"])] for _, row in df.iterrows()]
-    df["post_skel_name"] = [id_to_name[int(row["post_skid"])] for _, row in df.iterrows()]
+    df["post_skel_name"] = [
+        id_to_name[int(row["post_skid"])] for _, row in df.iterrows()
+    ]
     df["pre_skel_name_mirror"] = [mirror_name(name) for name in df["pre_skel_name"]]
     df["post_skel_name_mirror"] = [mirror_name(name) for name in df["post_skel_name"]]
 
@@ -264,7 +265,9 @@ def main():
     logger.info("Starting area calculation for v2")
 
     df = conn_areas_from_dir(ORN_PN_DIR)
-    df_to_monolothic_hdf5(df, ORN_PN_DIR / "skeletons.json", ORN_PN_DIR / "table_noskel.hdf5")
+    df_to_monolothic_hdf5(
+        df, ORN_PN_DIR / "skeletons.json", ORN_PN_DIR / "table_noskel.hdf5"
+    )
 
 
 if __name__ == "__main__":

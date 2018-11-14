@@ -112,8 +112,8 @@ def dfs_from_dir(dpath: os.PathLike) -> SkelConnRoiDFs:
 
 def hdf_join(path, *args):
     """Like os.path.join, but for HDF5 hierarchies. N.B. strips trailing, but not leading, slash from entire path"""
-    path = path.rstrip('/')
+    path = path.rstrip("/")
     for arg in args:
-        arg = arg.strip('/')
-        path += '/' + arg
+        arg = arg.strip("/")
+        path += "/" + arg
     return path

@@ -13,7 +13,7 @@ IGNORE_CANVAS = False
 
 
 def count_clefts(path, ignore_canvas=IGNORE_CANVAS):
-    with h5py.File(path, 'r') as f:
+    with h5py.File(path, "r") as f:
         labels_grp = f["/volumes/labels"]
         if "canvas" in labels_grp and not ignore_canvas:
             arr = labels_grp["canvas"][:]
@@ -26,7 +26,7 @@ def count_clefts(path, ignore_canvas=IGNORE_CANVAS):
 
 
 def count_partners(path):
-    with h5py.File(path, 'r') as f:
+    with h5py.File(path, "r") as f:
         rows, cols = f[Dataset.PARTNERS].shape
         assert cols == 2, f"Expected 2 columns, got {cols}"
     return rows
@@ -43,7 +43,7 @@ def globs_to_fpaths(*globs):
     return output
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = ArgumentParser(prog="count_synapses")
     # parser.add_argument("--total", "-t", action="store_true")
     parser.add_argument("--partners", "-p", action="store_true")
@@ -54,10 +54,9 @@ if __name__ == '__main__':
     # parsed = parser.parse_args([
     #     "/data2/cremi/sample_*_20160501.hdf",
     # ])
-    parsed = parser.parse_args([
-        "--partners",
-        "/data2/manual_clefts/LN-basin/data_*.hdf5"
-    ])
+    parsed = parser.parse_args(
+        ["--partners", "/data2/manual_clefts/LN-basin/data_*.hdf5"]
+    )
 
     def fn(fpath):
         if parsed.partners:

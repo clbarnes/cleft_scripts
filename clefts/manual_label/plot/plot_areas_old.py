@@ -16,7 +16,12 @@ from scipy import stats
 
 from clefts.manual_label.constants import CHO_BASIN_DIR, ORN_PN_DIR
 from clefts.manual_label.common import (
-    ConnRow, SkelRow, ROIRow, dict_to_namedtuple, SkelConnRoiDFs, dfs_from_dir
+    ConnRow,
+    SkelRow,
+    ROIRow,
+    dict_to_namedtuple,
+    SkelConnRoiDFs,
+    dfs_from_dir,
 )
 from clefts.manual_label.plot.stats_utils import freedman_diaconis_rule
 
@@ -25,7 +30,7 @@ logging.getLogger("matplotlib").propagate = False
 
 TIMESTAMP = datetime.now().isoformat()
 USE_TEX = True
-plt.rc('text', usetex=USE_TEX)
+plt.rc("text", usetex=USE_TEX)
 
 
 def are_ipsi(name1, name2):
@@ -52,13 +57,15 @@ def make_edge_name(name1, name2, tex=USE_TEX):
     ipsi_contra = "IPSI" if are_ipsi(name1, name2) else "CONTRA"
     return "{} {} {} {}".format(
         unside_name(name1),
-        r'$\rightarrow$' if tex else '->',
+        r"$\rightarrow$" if tex else "->",
         unside_name(name2),
-        ipsi_contra
+        ipsi_contra,
     )
 
 
-def plot_leftright_bias(graph, path=None, tex=USE_TEX, show=True, fig_ax_arr=None, name=None, **kwargs):
+def plot_leftright_bias(
+    graph, path=None, tex=USE_TEX, show=True, fig_ax_arr=None, name=None, **kwargs
+):
     logger.debug("Plotting left-right bias")
     edge_dict = {
         (graph.nodes[pre]["skel_name"], graph.nodes[post]["skel_name"]): data
@@ -71,7 +78,10 @@ def plot_leftright_bias(graph, path=None, tex=USE_TEX, show=True, fig_ax_arr=Non
     pairs = set()
     for pre, post in graph.edges():
         real_edge = (graph.nodes[pre]["skel_name"], graph.nodes[post]["skel_name"])
-        mirror_edge = (graph.nodes[pre]["skel_name_mirror"], graph.nodes[post]["skel_name_mirror"])
+        mirror_edge = (
+            graph.nodes[pre]["skel_name_mirror"],
+            graph.nodes[post]["skel_name_mirror"],
+        )
         keyed = tuple(sorted([real_edge, mirror_edge]))
         pairs.add(keyed)
     pairs = sorted(pairs)
@@ -89,7 +99,11 @@ def plot_leftright_bias(graph, path=None, tex=USE_TEX, show=True, fig_ax_arr=Non
             d2 = edge_dict[(pre2, post2)]
         except KeyError:
             unilateral.append(
-                (unside_name(pre1), unside_name(post1), 'IPSI' if are_ipsi(pre1, post1) else 'CONTRA')
+                (
+                    unside_name(pre1),
+                    unside_name(post1),
+                    "IPSI" if are_ipsi(pre1, post1) else "CONTRA",
+                )
             )
             continue
 
@@ -101,8 +115,13 @@ def plot_leftright_bias(graph, path=None, tex=USE_TEX, show=True, fig_ax_arr=Non
 
         labels.append(make_edge_name(pre1, post1, tex))
 
-    count_bias = [(count1 / (count1 + count2) - 0.5) * 2 for count1, count2 in zip(counts1, counts2)]
-    area_bias = [(area1 / (area1 + area2) - 0.5) * 2 for area1, area2 in zip(areas1, areas2)]
+    count_bias = [
+        (count1 / (count1 + count2) - 0.5) * 2
+        for count1, count2 in zip(counts1, counts2)
+    ]
+    area_bias = [
+        (area1 / (area1 + area2) - 0.5) * 2 for area1, area2 in zip(areas1, areas2)
+    ]
 
     fig, ax_arr = fig_ax_arr if fig_ax_arr else plt.subplots(1, 2, figsize=(10, 6))
     ax1, ax2 = ax_arr.flatten()
@@ -111,7 +130,7 @@ def plot_leftright_bias(graph, path=None, tex=USE_TEX, show=True, fig_ax_arr=Non
     width = 0.35
 
     ax1.bar(ind, count_bias, width, label="syn. count")
-    ax1.bar(ind+width, area_bias, width, label="syn. area ($nm^2$)")
+    ax1.bar(ind + width, area_bias, width, label="syn. area ($nm^2$)")
     ax1.set_xticks(ind + width / 2)
     ax1.set_xticklabels(labels, rotation=45, ha="right")
     ax1.set_ylabel("asymmetry, +ve is left-biased")
@@ -121,36 +140,48 @@ def plot_leftright_bias(graph, path=None, tex=USE_TEX, show=True, fig_ax_arr=Non
 
     width = 2 * width
     ind = np.array([0])
-    ax2.bar(ind, [np.abs(count_bias).mean()], width, yerr=[np.abs(count_bias).std()], label="mean syn. count")
-    ax2.bar(ind+width, [np.abs(area_bias).mean()], width, yerr=[np.abs(area_bias).std()], label="mean syn. area")
+    ax2.bar(
+        ind,
+        [np.abs(count_bias).mean()],
+        width,
+        yerr=[np.abs(count_bias).std()],
+        label="mean syn. count",
+    )
+    ax2.bar(
+        ind + width,
+        [np.abs(area_bias).mean()],
+        width,
+        yerr=[np.abs(area_bias).std()],
+        label="mean syn. area",
+    )
     ax2.set_ylabel("mean absolute asymmetry")
     ax2.set_xticks([ind, ind + width])
     ax2.set_xticklabels(["count", "area"])
     ax2.set_ylim(0, 1)
 
-    fig.suptitle(r"Left-right bias by synapse count and synaptic surface area" + (f" ({name})" if name else ''))
+    fig.suptitle(
+        r"Left-right bias by synapse count and synaptic surface area"
+        + (f" ({name})" if name else "")
+    )
     fig.tight_layout()
     fig.subplots_adjust(top=0.9)
     if unilateral:
-        excluded_str = "Excluded unilateral edges:\n" + '\n'.join(
+        excluded_str = "Excluded unilateral edges:\n" + "\n".join(
             "{} {} {} {}".format(
-                pre,
-                r'$\rightarrow$' if tex else '->',
-                post,
-                ipsicontra
+                pre, r"$\rightarrow$" if tex else "->", post, ipsicontra
             )
             for pre, post, ipsicontra in unilateral
         )
         fig.text(0.5, 0.02, excluded_str)
 
     if path:
-        os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         fig.savefig(path)
     if show:
         plt.show()
 
 
-def latex_float(n, fmt='.2e'):
+def latex_float(n, fmt=".2e"):
     """based on https://stackoverflow.com/a/13490601/2700168"""
     float_str = "{{0:{}}}".format(fmt).format(n)
     if "e" in float_str:
@@ -162,9 +193,9 @@ def latex_float(n, fmt='.2e'):
 
 def ensure_sign(s):
     s = str(s)
-    if s.startswith('-'):
-        return '- ' + s[1:]
-    return '+ ' + s
+    if s.startswith("-"):
+        return "- " + s[1:]
+    return "+ " + s
 
 
 def plot_count_vs_area(graph, path=None, show=True, fig_ax=None, name=None, **kwargs):
@@ -172,8 +203,7 @@ def plot_count_vs_area(graph, path=None, show=True, fig_ax=None, name=None, **kw
 
     edge_dict = {
         (graph.nodes[pre]["skel_name"], graph.nodes[post]["skel_name"]): dict(
-            pre_skid=pre, post_skid=post,
-            **data
+            pre_skid=pre, post_skid=post, **data
         )
         for pre, post, data in graph.edges(data=True)
     }
@@ -186,15 +216,22 @@ def plot_count_vs_area(graph, path=None, show=True, fig_ax=None, name=None, **kw
     for (pre_name, post_name), data in edge_dict.items():
         counts.append(data["count"])
         areas.append(data["area"])
-        pairs = tuple(sorted([
-            (pre_name, post_name),
-            (graph.node[data["pre_skid"]]["skel_name_mirror"], graph.node[data["post_skid"]]["skel_name_mirror"])
-        ]))
+        pairs = tuple(
+            sorted(
+                [
+                    (pre_name, post_name),
+                    (
+                        graph.node[data["pre_skid"]]["skel_name_mirror"],
+                        graph.node[data["post_skid"]]["skel_name_mirror"],
+                    ),
+                ]
+            )
+        )
         try:
             edge_pairs[pairs] = {
                 "counts": [edge_dict[pair]["count"] for pair in pairs],
                 "areas": [edge_dict[pair]["area"] for pair in pairs],
-                "name": make_edge_name(*pairs[0])
+                "name": make_edge_name(*pairs[0]),
             }
         except KeyError:  # unilateral edge
             unpaired_counts.append(data["count"])
@@ -203,11 +240,13 @@ def plot_count_vs_area(graph, path=None, show=True, fig_ax=None, name=None, **kw
     counts = np.array(counts)
     areas = np.array(areas)
 
-    gradient, residuals, _, _ = np.linalg.lstsq(counts[:, np.newaxis], areas, rcond=None)
-    r2 = 1 - residuals[0] / np.sum((areas - areas.mean())**2)
+    gradient, residuals, _, _ = np.linalg.lstsq(
+        counts[:, np.newaxis], areas, rcond=None
+    )
+    r2 = 1 - residuals[0] / np.sum((areas - areas.mean()) ** 2)
 
     unc_gradient, intercept, r_value, _, _ = stats.linregress(counts, areas)
-    unc_r2 = r_value**2
+    unc_r2 = r_value ** 2
 
     fig, ax = fig_ax if fig_ax else plt.subplots(figsize=(10, 8))
     ax.scatter(unpaired_counts, unpaired_areas, c="gray")
@@ -215,43 +254,54 @@ def plot_count_vs_area(graph, path=None, show=True, fig_ax=None, name=None, **kw
         paths = ax.scatter(data["counts"], data["areas"], label=data["name"])
         color = paths.get_facecolor().squeeze()
         ax.plot(
-            data["counts"], data["areas"],
-            color=tuple(color[:3]), linestyle=':', alpha=0.5
+            data["counts"],
+            data["areas"],
+            color=tuple(color[:3]),
+            linestyle=":",
+            alpha=0.5,
         )
 
     x = np.array([0, counts.max()])
 
     if len(counts) > 2:
         ax.plot(
-            x, x * unc_gradient + intercept,
-            color="orange", linestyle="--",
-            label=r'linear best fit \newline $y = ({})x {}$ \newline $R^2 = {:.3f}$'.format(
+            x,
+            x * unc_gradient + intercept,
+            color="orange",
+            linestyle="--",
+            label=r"linear best fit \newline $y = ({})x {}$ \newline $R^2 = {:.3f}$".format(
                 latex_float(unc_gradient), ensure_sign(latex_float(intercept)), unc_r2
-            )
+            ),
         )
         ax.text(
-            0.5, 0.1, r"origin-intersecting best fit (not shown) \newline $y = ({})x$ \newline $R^2 = {:.3f}$".format(
+            0.5,
+            0.1,
+            r"origin-intersecting best fit (not shown) \newline $y = ({})x$ \newline $R^2 = {:.3f}$".format(
                 latex_float(gradient[0]), r2
-            ), transform=ax.transAxes
+            ),
+            transform=ax.transAxes,
         )
         ax.set_xlim(0)
         ax.set_ylim(0)
     else:
         ax.set_xlim(0, 15)
-        ax.set_ylim(0, 250000)
+        ax.set_ylim(0, 250_000)
 
     ax.set_xlabel(kwargs.get("xlabel", "syn. count"))
     ax.set_ylabel(kwargs.get("ylabel", "summed syn. area ($nm^2$)"))
 
     ax.set_title(
-        kwargs.get("title", "Synapse count vs. synaptic surface area" + (f" ({name})" if name else ''))
+        kwargs.get(
+            "title",
+            "Synapse count vs. synaptic surface area" + (f" ({name})" if name else ""),
+        )
     )
 
     ax.legend()
     fig.tight_layout()
 
     if path:
-        os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         fig.savefig(path)
     if show:
         plt.show()
@@ -266,7 +316,7 @@ def frac_vs_area(g_single, path=None, show=True, fig_ax=None, name=None, **kwarg
         "A09g a1r Basin-3": 253,
         "A09b a1r Basin-1": 400,
         "A09c a1r Basin-4": 202,
-        "A09g a1l Basin-3": 171
+        "A09g a1l Basin-3": 171,
     }
 
     g2 = g_single.copy()
@@ -276,17 +326,29 @@ def frac_vs_area(g_single, path=None, show=True, fig_ax=None, name=None, **kwarg
         data["count"] /= dendritic_posts[post_name]
 
     plot_count_vs_area(
-        g2, path, show, fig_ax,
-        xlabel="syn. fraction", title="Synapse fraction vs. contact number" + (f" ({name})" if name else ''),
-        **kwargs
+        g2,
+        path,
+        show,
+        fig_ax,
+        xlabel="syn. fraction",
+        title="Synapse fraction vs. contact number" + (f" ({name})" if name else ""),
+        **kwargs,
     )
 
 
 def filter_graph(g, pre_pattern=None, post_pattern=None):
     g2 = g.copy()
     for pre, post in g.edges():
-        pre_match = True if pre_pattern is None else re.search(pre_pattern, g.node[pre]["skel_name"])
-        post_match = True if post_pattern is None else re.search(post_pattern, g.node[post]["skel_name"])
+        pre_match = (
+            True
+            if pre_pattern is None
+            else re.search(pre_pattern, g.node[pre]["skel_name"])
+        )
+        post_match = (
+            True
+            if post_pattern is None
+            else re.search(post_pattern, g.node[post]["skel_name"])
+        )
         if not pre_match or not post_match:
             g2.remove_edge(pre, post)
 
@@ -316,24 +378,24 @@ def plot_area_histogram(multigraph, path=None, show=True, fig_ax=None, name=None
         mean, variance
     )
 
-    ax.plot(x, y, 'k--', linewidth=1, label=fit_label)
+    ax.plot(x, y, "k--", linewidth=1, label=fit_label)
 
     perc5, perc95 = distribution.ppf([0.05, 0.95])
-    ax.axvline(perc5, color='orange', linestyle=':', label="90\% interval")
-    ax.axvline(perc95, color='orange', linestyle=':')
+    ax.axvline(perc5, color="orange", linestyle=":", label="90\% interval")
+    ax.axvline(perc95, color="orange", linestyle=":")
 
     ax.set_xlabel("log syn. area ($log_{10}(nm^2)$)")
     ax.set_ylabel("frequency")
-    ax.set_title("Histogram of synaptic areas" + (f' ({name})' if name else ''))
+    ax.set_title("Histogram of synaptic areas" + (f" ({name})" if name else ""))
     ax.set_xlim(3, 5)
     ax.set_ylim(0, 50)
 
-    ax.legend(loc='upper left')
+    ax.legend(loc="upper left")
 
     plt.tight_layout()
 
     if path:
-        os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         fig.savefig(path)
     if show:
         plt.show()
@@ -385,12 +447,14 @@ def single_to_multi_table(df, dpath):
 
     for row in df.itertuples(index=False):
         for end in ["pre_", "post_"]:
-            skels_rows.add(SkelRow(
-                getattr(row, end + "skid"),
-                getattr(row, end + "skel_name"),
-                getattr(row, end + "skel_name_mirror"),
-                name_to_side(getattr(row, end + "skel_name")),
-            ))
+            skels_rows.add(
+                SkelRow(
+                    getattr(row, end + "skid"),
+                    getattr(row, end + "skel_name"),
+                    getattr(row, end + "skel_name_mirror"),
+                    name_to_side(getattr(row, end + "skel_name")),
+                )
+            )
             conns_rows.add(dict_to_namedtuple(row._asdict(), ConnRow))
             roi_rows.add(dict_to_namedtuple(row._asdict(), ROIRow))
 
@@ -403,10 +467,12 @@ def single_to_multi_table(df, dpath):
     dfs.to_hdf5(dpath)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
-    for dir_path, name in tqdm(zip([CHO_BASIN_DIR, ORN_PN_DIR], ["cho to basin", "ORN to PN"]), total=2):
+    for dir_path, name in tqdm(
+        zip([CHO_BASIN_DIR, ORN_PN_DIR], ["cho to basin", "ORN to PN"]), total=2
+    ):
         g_multi = dir_to_multidigraph(dir_path)
         g_single = multidigraph_to_digraph(g_multi)
 
@@ -415,7 +481,7 @@ if __name__ == '__main__':
                 g_single,
                 dir_path / "figs" / f"leftright_bias_{TIMESTAMP}.svg",
                 show=False,
-                name=name
+                name=name,
             )
             pbar.update()
 
@@ -423,7 +489,7 @@ if __name__ == '__main__':
                 g_single,
                 dir_path / "figs" / f"count_vs_area_{TIMESTAMP}.svg",
                 show=False,
-                name=name
+                name=name,
             )
             pbar.update()
 
@@ -432,20 +498,20 @@ if __name__ == '__main__':
                     g_single,
                     dir_path / "figs" / f"frac_vs_area_{TIMESTAMP}.svg",
                     show=False,
-                    name=name
+                    name=name,
                 )
 
                 plot_count_vs_area(
                     filter_graph(g_single, "vchA/B", "A09g a1. Basin-3"),
                     dir_path / "figs" / f"single_count_vs_area_{TIMESTAMP}.svg",
                     show=False,
-                    name="vchA/B to A09g Basin-3"
+                    name="vchA/B to A09g Basin-3",
                 )
 
             plot_area_histogram(
                 g_multi,
                 dir_path / "figs" / f"synaptic_area_hist_{TIMESTAMP}.svg",
                 show=False,
-                name=name
+                name=name,
             )
             pbar.update()

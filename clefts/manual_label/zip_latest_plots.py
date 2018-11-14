@@ -14,12 +14,14 @@ from clefts.constants import PACKAGE_ROOT
 
 logger = logging.getLogger("__name__")
 
-timestamp_re = re.compile(r"^(?P<prefix>.+)(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+)(?P<suffix>.*)\.\w+$")
+timestamp_re = re.compile(
+    r"^(?P<prefix>.+)(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+)(?P<suffix>.*)\.\w+$"
+)
 
 timestamp = datetime.now().isoformat()
 
-DEFAULT_ARCHIVE = '.zip'
-IGNORE_GLOBS = ('.gitignore', )
+DEFAULT_ARCHIVE = ".zip"
+IGNORE_GLOBS = (".gitignore",)
 
 
 def subtract_base(base: os.PathLike, path: os.PathLike):
@@ -34,7 +36,9 @@ def subtract_base(base: os.PathLike, path: os.PathLike):
     return Path(os.path.join(*different_parts))
 
 
-def get_latest_plots(src_dir: os.PathLike, ignore_globs=IGNORE_GLOBS) -> Iterator[Tuple[Path, List[str]]]:
+def get_latest_plots(
+    src_dir: os.PathLike, ignore_globs=IGNORE_GLOBS
+) -> Iterator[Tuple[Path, List[str]]]:
     """
     Get files and directores from the given tree, filtering out old versions of timestamped files.
 
@@ -51,7 +55,9 @@ def get_latest_plots(src_dir: os.PathLike, ignore_globs=IGNORE_GLOBS) -> Iterato
 
         for fname in files:
             if ignore_globs and any(fnmatch(fname, g) for g in ignore_globs):
-                logger.debug("File named '%s' matches an ignore pattern; ignoring", fname)
+                logger.debug(
+                    "File named '%s' matches an ignore pattern; ignoring", fname
+                )
                 continue
             match = timestamp_re.search(fname)
             if not match:
@@ -66,7 +72,9 @@ def get_latest_plots(src_dir: os.PathLike, ignore_globs=IGNORE_GLOBS) -> Iterato
             yield subtract_base(src_dir, root), out_files
 
 
-def copy_latest_plots(src: os.PathLike, tgt: os.PathLike, archive_ext: Optional[str]=DEFAULT_ARCHIVE):
+def copy_latest_plots(
+    src: os.PathLike, tgt: os.PathLike, archive_ext: Optional[str] = DEFAULT_ARCHIVE
+):
     """"""
     assert src != tgt, "src and tgt are the same"
     src = Path(src)
@@ -86,15 +94,15 @@ def copy_latest_plots(src: os.PathLike, tgt: os.PathLike, archive_ext: Optional[
     archive_name = tgt.name + archive_ext
     logging.info("Attempting to archive to %s", os.path.join(tgt, archive_name))
 
-    if archive_ext == '.zip':
-        sp.run(["zip", "-r", archive_name, '.'])
-    elif archive_ext == '.tar.gz':
+    if archive_ext == ".zip":
+        sp.run(["zip", "-r", archive_name, "."])
+    elif archive_ext == ".tar.gz":
         sp.run(["tar", "-cvzf", archive_name, "."])
     else:
         raise ValueError("Archive extension given but not recognised, aborting")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     local_root = PACKAGE_ROOT / "manual_label"
     src = local_root / "figs"

@@ -19,6 +19,6 @@ def main():
     v3_to_areas()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     main()

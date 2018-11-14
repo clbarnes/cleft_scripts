@@ -40,7 +40,9 @@ class CremiROI(ROI):
     def clefts_intersect(self, other):
         if not self.intersection_vol(other):
             return False
-        super_offset, super_shape = get_superroi((self.offset, self.shape), (other.offset, other.shape))
+        super_offset, super_shape = get_superroi(
+            (self.offset, self.shape), (other.offset, other.shape)
+        )
         self_super = self.project_clefts(super_offset, super_shape)
         other_super = other.project_clefts(super_offset, super_shape)
 
@@ -54,10 +56,14 @@ class CremiROI(ROI):
 
     def project_clefts(self, offset, shape):
         """assumes offset, shape describes a super-roi of self"""
-        assert all([
-            np.allclose(np.minimum(offset, self.offset), offset),
-            np.allclose(np.maximum(offset + shape, self.offset + self.shape), offset + shape)
-        ]), "projection into non-superroi not implemented"
+        assert all(
+            [
+                np.allclose(np.minimum(offset, self.offset), offset),
+                np.allclose(
+                    np.maximum(offset + shape, self.offset + self.shape), offset + shape
+                ),
+            ]
+        ), "projection into non-superroi not implemented"
 
         arr = np.zeros(shape, dtype=np.uint64)
         local_offset = self.offset - offset
@@ -79,10 +85,13 @@ class CremiROI(ROI):
 def get_cleft_overlaps(fpaths):
     g = nx.Graph()
     g.add_nodes_from(fpaths)
-    rois = {fpath: CremiROI.from_hdf5(fpath) for fpath in tqdm(fpaths, desc="reading files")}
+    rois = {
+        fpath: CremiROI.from_hdf5(fpath) for fpath in tqdm(fpaths, desc="reading files")
+    }
     for first, second in tqdm(
-            itertools.combinations(rois.values(), 2),
-            desc="finding intersections", total=comb(len(rois), 2)
+        itertools.combinations(rois.values(), 2),
+        desc="finding intersections",
+        total=comb(len(rois), 2),
     ):
         if first.same_skels(second) and first.clefts_intersect(second):
             g.add_edge(first.fpath, second.fpath)
@@ -99,7 +108,9 @@ class BigCATContext:
 
     def __enter__(self):
         logger.info("opening " + self.fpath)
-        args = "bigcat -i {} -r /volumes/raw -l /volumes/labels/clefts".format(self.fpath).split()
+        args = "bigcat -i {} -r /volumes/raw -l /volumes/labels/clefts".format(
+            self.fpath
+        ).split()
         self.popen = sp.Popen(args)
         return self.popen.pid
 
@@ -143,7 +154,7 @@ def write_double_labels(components, path):
             "pre_skid": pre_skids.pop(),
             "post_skid": post_skids.pop(),
             "conn_ids": conn_ids,
-            "fpaths": fpaths
+            "fpaths": fpaths,
         }
         tuplised = tuplise_row(d)
         if tuplised not in done_rows:
@@ -156,9 +167,13 @@ def write_double_labels(components, path):
     return rows
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    fpaths = [os.path.join(cremi_dir, fname) for fname in os.listdir(cremi_dir) if fname.endswith(".hdf5")]
+    fpaths = [
+        os.path.join(cremi_dir, fname)
+        for fname in os.listdir(cremi_dir)
+        if fname.endswith(".hdf5")
+    ]
     components = list(get_cleft_overlaps(fpaths))
     write_double_labels(components, "possible_double_labels.json")
 

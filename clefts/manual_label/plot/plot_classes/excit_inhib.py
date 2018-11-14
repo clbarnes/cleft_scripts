@@ -15,12 +15,17 @@ logger = logging.getLogger(__name__)
 class ExcitationInhibitionPlot(BasePlot):
     title_base = "Inhibitory/excitatory count and area"
 
-    def plot(self, directory=None, tex=USE_TEX, show=True, fig_ax_arr=None, ext=DEFAULT_EXT, **kwargs):
+    def plot(
+        self,
+        directory=None,
+        tex=USE_TEX,
+        show=True,
+        fig_ax_arr=None,
+        ext=DEFAULT_EXT,
+        **kwargs,
+    ):
         skels = {}
-        data_template = {
-            "count": {"exc": 0, "inh": 0},
-            "area": {"exc": 0, "inh": 0},
-        }
+        data_template = {"count": {"exc": 0, "inh": 0}, "area": {"exc": 0, "inh": 0}}
         for skid, ndata in self.graph.nodes(data=True):
             skel = ndata["skeleton"]
             if "basin" not in skel.superclasses:
@@ -36,7 +41,9 @@ class ExcitationInhibitionPlot(BasePlot):
                     this_data["count"]["inh"] += 1
                     this_data["area"]["inh"] += data["area"]
                 else:
-                    raise ValueError(f"Expected drive of 1 or -1, got {repr(data['drive'])}")
+                    raise ValueError(
+                        f"Expected drive of 1 or -1, got {repr(data['drive'])}"
+                    )
 
             if any(this_data["count"][key] == 0 for key in ["exc", "inh"]):
                 logger.info(
@@ -68,15 +75,18 @@ class ExcitationInhibitionPlot(BasePlot):
             line_y = gradient * x + intercept
 
             ax.plot(
-                x, line_y, color="gray", linestyle="--",
-                label=r'linear best fit \newline $y = ({})x {}$ \newline $R^2 = {:.3f}$'.format(
-                    latex_float(gradient), ensure_sign(latex_float(intercept)), r_value**2
-                )
+                x,
+                line_y,
+                color="gray",
+                linestyle="--",
+                label=r"linear best fit \newline $y = ({})x {}$ \newline $R^2 = {:.3f}$".format(
+                    latex_float(gradient),
+                    ensure_sign(latex_float(intercept)),
+                    r_value ** 2,
+                ),
             )
 
             ax.legend()
 
         fig.tight_layout()
         self._save_show(directory, show, fig, ext)
-
-

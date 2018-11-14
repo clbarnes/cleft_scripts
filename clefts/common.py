@@ -10,7 +10,7 @@ from clefts.constants import DIMS, RESOLUTION, TRANSLATION, CoordZYX
 logger = logging.getLogger(__name__)
 
 
-def offset_shape_to_roi(offset, shape, dims='zyx'):
+def offset_shape_to_roi(offset, shape, dims="zyx"):
     """
 
     Parameters
@@ -44,8 +44,8 @@ def offset_shape_to_dicts(offset, shape):
     }
     """
     return {
-        'min': offset.copy(),
-        'max': {dim: offset.get(dim, 0) + shape.get(dim, 1) for dim in offset}
+        "min": offset.copy(),
+        "max": {dim: offset.get(dim, 0) + shape.get(dim, 1) for dim in offset},
     }
 
 
@@ -64,7 +64,10 @@ def center_radius_to_offset_shape(center, radius):
     dict
         shape
     """
-    return {dim: center[dim] - radius for dim in DIMS}, {dim: radius*2 for dim in DIMS}
+    return (
+        {dim: center[dim] - radius for dim in DIMS},
+        {dim: radius * 2 for dim in DIMS},
+    )
 
 
 def center_side_to_offset_shape(center, side):
@@ -125,7 +128,7 @@ def nm_to_px(offset_nm, shape_nm=None):
 
 def offset_shape_to_slicing(offset, shape):
     max_bound = offset + shape
-    return tuple(slice(offset[dim], max_bound[dim]) for dim in 'zyx')
+    return tuple(slice(offset[dim], max_bound[dim]) for dim in "zyx")
 
 
 def resolve_padding(padding_low=0, padding_high=None, fn=None, *args, **kwargs):
@@ -171,7 +174,7 @@ class StrEnum(Enum):
         if isinstance(other, type(self)):
             cmp = (other.value, other.name)
         elif isinstance(other, str):
-            cmp = (other, '')
+            cmp = (other, "")
         else:
             raise TypeError(f"Cannot compare {type(self)} with {type(other)}")
 

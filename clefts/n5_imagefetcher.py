@@ -5,6 +5,7 @@ from clefts.constants import N5_OFFSET
 
 class N5ImageFetcher:
     """Thin wrapper around N5 dataset to make its API compatible with catpy.ImageFetcher"""
+
     def __init__(self, n5_path, ds_path, offset_px=N5_OFFSET):
         """
 
@@ -23,5 +24,5 @@ class N5ImageFetcher:
     def get_stack_space(self, roi):
         roi = np.asarray(roi) + self.offset_px
         slicing = tuple(slice(start, stop) for start, stop in roi.T)
-        with z5py.N5File(self.n5_path, 'r') as f:
+        with z5py.N5File(self.n5_path, "r") as f:
             return f[self.ds_path][slicing]

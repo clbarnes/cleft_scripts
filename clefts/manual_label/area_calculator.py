@@ -24,6 +24,7 @@ class AreaCalculator(metaclass=ABCMeta):
 
 class SimpleAreaCalculator(AreaCalculator):
     """Count pixels, multiply by the average z-area of a pixel. Depends on images already being skeletonized."""
+
     def calculate(self):
         counts = dict()
         for label in self.label_set():
@@ -36,6 +37,7 @@ class SkeletonizingAreaCalculator(AreaCalculator):
     Skeletonise 2D planes in 3D images, then count pixels and multiply by the average z-area of a pixel.
     Assumes 50% of pixels are diagonal, 50% are on-face.
     """
+
     def calculate(self):
         counts = dict()
         for z_plane in self.arr:
@@ -46,8 +48,8 @@ class SkeletonizingAreaCalculator(AreaCalculator):
         return counts
 
 
-y = RESOLUTION['y']
-x = RESOLUTION['x']
+y = RESOLUTION["y"]
+x = RESOLUTION["x"]
 diag = np.linalg.norm([x, y])
 
 
@@ -57,18 +59,19 @@ class LinearAreaCalculator(AreaCalculator):
 
     This strategy is used by synapsesuggestor and skeleton_synapses
     """
+
     # Divide by 2 because each edge will be represented twice
-    kernel = np.array([
-        [diag, y, diag],
-        [x, 0, x],
-        [diag, y, diag]
-    ]) / 2
+    kernel = np.array([[diag, y, diag], [x, 0, x], [diag, y, diag]]) / 2
 
     origin = (0, 0)
 
     def length(self, skeletonized_2d):
         return convolve(
-            skeletonized_2d.astype(float), self.kernel, mode="constant", cval=0, origin=self.origin
+            skeletonized_2d.astype(float),
+            self.kernel,
+            mode="constant",
+            cval=0,
+            origin=self.origin,
         )[skeletonized_2d].sum()
 
     def calculate(self):
@@ -78,7 +81,7 @@ class LinearAreaCalculator(AreaCalculator):
                 if label not in total_lengths:
                     total_lengths[label] = 0
                 skeletonized = skeletonize(z_plane == label)
-                total_lengths[label] += self.length(skeletonized) * RESOLUTION['z']
+                total_lengths[label] += self.length(skeletonized) * RESOLUTION["z"]
         return total_lengths
 
 
@@ -88,9 +91,10 @@ class TrapezoidAreaCalculator(LinearAreaCalculator):
 
     Strategy not compatible with skeleton_synapses or CATMAID-synapsesuggestor
     """
+
     def trapezium_area(self, upper_base=0, lower_base=0):
         bases = upper_base, lower_base
-        height = RESOLUTION['z']
+        height = RESOLUTION["z"]
         if not all(bases):  # synapse finishes somewhere between slices
             height /= 2  # assume halfway
         return height * sum(bases) / 2
@@ -114,7 +118,9 @@ class TrapezoidAreaCalculator(LinearAreaCalculator):
 
                 previous_len = this_len
 
-            areas[label] += self.trapezium_area(previous_len)  # account for final taper if required
+            areas[label] += self.trapezium_area(
+                previous_len
+            )  # account for final taper if required
 
         return areas
 
@@ -128,6 +134,7 @@ class DeformedTrapezoidAreaCalculator(TrapezoidAreaCalculator):
 
     However, only deformations orthogonal to the plane of the cleft actually increase the area
     """
+
     def calculate(self):
         raise NotImplementedError()
 

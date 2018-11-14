@@ -26,26 +26,44 @@ class LeftRightBiasPlot(BasePlot):
 
         self.name = name
 
-    def plot(self, directory=None, tex=USE_TEX, show=True, fig_ax_arr=None, ext=DEFAULT_EXT, **kwargs):
+    def plot(
+        self,
+        directory=None,
+        tex=USE_TEX,
+        show=True,
+        fig_ax_arr=None,
+        ext=DEFAULT_EXT,
+        **kwargs,
+    ):
         edge_pairs = self.get_edge_pairs()
 
         count_bias = []
         area_bias = []
         labels = []
         for (pre1, post1), (pre2, post2) in edge_pairs:
-            count_bias.append(bias(
-                self.graph.edges[pre1, post1]["count"],
-                self.graph.edges[pre2, post2]["count"]
-            ))
-            area_bias.append(bias(
-                self.graph.edges[pre1, post1]["area"],
-                self.graph.edges[pre2, post2]["area"]
-            ))
-            labels.append(edge_name(
-                SkeletonGroup().union(self.obj_from_id(pre1), self.obj_from_id(pre2)),
-                SkeletonGroup().union(self.obj_from_id(post1), self.obj_from_id(post2)),
-                tex=tex
-            ))
+            count_bias.append(
+                bias(
+                    self.graph.edges[pre1, post1]["count"],
+                    self.graph.edges[pre2, post2]["count"],
+                )
+            )
+            area_bias.append(
+                bias(
+                    self.graph.edges[pre1, post1]["area"],
+                    self.graph.edges[pre2, post2]["area"],
+                )
+            )
+            labels.append(
+                edge_name(
+                    SkeletonGroup().union(
+                        self.obj_from_id(pre1), self.obj_from_id(pre2)
+                    ),
+                    SkeletonGroup().union(
+                        self.obj_from_id(post1), self.obj_from_id(post2)
+                    ),
+                    tex=tex,
+                )
+            )
 
         unilateral_labels = sorted(
             edge_name(self.obj_from_id(pre), self.obj_from_id(post), tex=tex)
@@ -69,20 +87,33 @@ class LeftRightBiasPlot(BasePlot):
 
         width = 2 * width
         ind = np.array([0])
-        ax2.bar(ind, [np.abs(count_bias).mean()], width, yerr=[np.abs(count_bias).std()], label="mean syn. count")
-        ax2.bar(ind + width, [np.abs(area_bias).mean()], width, yerr=[np.abs(area_bias).std()], label="mean syn. area")
+        ax2.bar(
+            ind,
+            [np.abs(count_bias).mean()],
+            width,
+            yerr=[np.abs(count_bias).std()],
+            label="mean syn. count",
+        )
+        ax2.bar(
+            ind + width,
+            [np.abs(area_bias).mean()],
+            width,
+            yerr=[np.abs(area_bias).std()],
+            label="mean syn. area",
+        )
         ax2.set_ylabel("mean absolute asymmetry")
         ax2.set_xticks([ind, ind + width])
         ax2.set_xticklabels(["count", "area"])
         ax2.set_ylim(0, 1)
 
         fig.suptitle(
-            r"Left-right bias by synapse count and synaptic surface area" + (f" ({self.name})" if self.name else '')
+            r"Left-right bias by synapse count and synaptic surface area"
+            + (f" ({self.name})" if self.name else "")
         )
         fig.tight_layout()
         fig.subplots_adjust(top=0.9)
         if unilateral_labels:
-            excluded_str = "Excluded unilateral edges:\n" + '\n'.join(unilateral_labels)
+            excluded_str = "Excluded unilateral edges:\n" + "\n".join(unilateral_labels)
             fig.text(0.5, 0.02, excluded_str)
 
         self._save_show(directory, show, fig, ext)

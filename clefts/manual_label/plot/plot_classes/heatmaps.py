@@ -51,11 +51,16 @@ def noop(*args, **kwargs):
 
 
 def draw_heatmap(
-        ax: Axes, arr: np.ndarray, title=None,
-        yticklabels=None, xticklabels=None,
-        ylabel=None, xlabel=None,
-        cmap=None, cmap_bounds=None,
-        cell_labels: CellLabels=DEFAULT_CELL_LABELS
+    ax: Axes,
+    arr: np.ndarray,
+    title=None,
+    yticklabels=None,
+    xticklabels=None,
+    ylabel=None,
+    xlabel=None,
+    cmap=None,
+    cmap_bounds=None,
+    cell_labels: CellLabels = DEFAULT_CELL_LABELS,
 ):
     kwargs = dict()
     if cmap_bounds:
@@ -88,7 +93,7 @@ def draw_heatmap(
     {
         CellLabels.NONE: noop,
         CellLabels.ZEROS: label_zero_cells,
-        CellLabels.ALL: label_all_cells
+        CellLabels.ALL: label_all_cells,
     }[cell_labels](ax, arr)
 
     return cax
@@ -101,7 +106,9 @@ class BaseHeatMap(BasePlot):
         super().__init__(graph, name)
         self.graph = multidigraph_to_digraph(self.graph)
 
-    def get_adj_data(self, attr: str, pre_nodes: List[CircuitNode], post_nodes: List[CircuitNode]) -> np.ndarray:
+    def get_adj_data(
+        self, attr: str, pre_nodes: List[CircuitNode], post_nodes: List[CircuitNode]
+    ) -> np.ndarray:
         recognised_attrs = ["area", "count"]
         if attr not in recognised_attrs:
             warn(f"Attribute {attr} not one of {recognised_attrs}")
@@ -119,7 +126,9 @@ class BaseHeatMap(BasePlot):
 
         return np.asarray(arr)
 
-    def prepare_heatmap(self, attr: str) -> Tuple[np.ndarray, Tuple[List[CircuitNode], List[CircuitNode]]]:
+    def prepare_heatmap(
+        self, attr: str
+    ) -> Tuple[np.ndarray, Tuple[List[CircuitNode], List[CircuitNode]]]:
         pre_nodes = set()
         post_nodes = set()
         nodes = dict(self.graph.nodes(data=True))
@@ -132,14 +141,28 @@ class BaseHeatMap(BasePlot):
 
         return self.get_adj_data(attr, pre_nodes, post_nodes), (pre_nodes, post_nodes)
 
-    def plot_heatmap(self, attr: str, fig: Figure, ax: Axes, cmap: DEFAULT_CMAP, cmap_bounds=None, cell_labels: CellLabels=DEFAULT_CELL_LABELS):
+    def plot_heatmap(
+        self,
+        attr: str,
+        fig: Figure,
+        ax: Axes,
+        cmap: DEFAULT_CMAP,
+        cmap_bounds=None,
+        cell_labels: CellLabels = DEFAULT_CELL_LABELS,
+    ):
         arr, (pre_nodes, post_nodes) = self.prepare_heatmap(attr)
 
         cax = draw_heatmap(
-            ax, arr, None,
-            [n.name for n in pre_nodes], [n.name for n in post_nodes],
-            "Pre-synaptic partners", "Post-synaptic partners",
-            cmap=cmap, cmap_bounds=cmap_bounds, cell_labels=cell_labels
+            ax,
+            arr,
+            None,
+            [n.name for n in pre_nodes],
+            [n.name for n in post_nodes],
+            "Pre-synaptic partners",
+            "Post-synaptic partners",
+            cmap=cmap,
+            cmap_bounds=cmap_bounds,
+            cell_labels=cell_labels,
         )
 
         fig.tight_layout()
@@ -149,7 +172,15 @@ class BaseHeatMap(BasePlot):
 class ContactNumberHeatMap(BaseHeatMap):
     title_base = "Contact number adjacency matrix"
 
-    def plot(self, directory=None, tex=USE_TEX, show=True, fig_ax_arr=None, ext=DEFAULT_EXT, **kwargs):
+    def plot(
+        self,
+        directory=None,
+        tex=USE_TEX,
+        show=True,
+        fig_ax_arr=None,
+        ext=DEFAULT_EXT,
+        **kwargs,
+    ):
         fig, ax_arr = self._fig_ax(fig_ax_arr)
         ax = ax_arr.flatten()[0]
 
@@ -161,7 +192,15 @@ class ContactNumberHeatMap(BaseHeatMap):
 class SynapticAreaHeatMap(BaseHeatMap):
     title_base = "Synaptic area adjacency matrix"
 
-    def plot(self, directory=None, tex=USE_TEX, show=True, fig_ax_arr=None, ext=DEFAULT_EXT, **kwargs):
+    def plot(
+        self,
+        directory=None,
+        tex=USE_TEX,
+        show=True,
+        fig_ax_arr=None,
+        ext=DEFAULT_EXT,
+        **kwargs,
+    ):
         fig, ax_arr = self._fig_ax(fig_ax_arr)
         ax = ax_arr.flatten()[0]
 
@@ -174,7 +213,15 @@ class SynapticAreaHeatMap(BaseHeatMap):
 class NormalisedDiffHeatMap(BaseHeatMap):
     title_base = "Normalised difference adjacency matrix"
 
-    def plot(self, directory=None, tex=USE_TEX, show=True, fig_ax_arr=None, ext=DEFAULT_EXT, **kwargs):
+    def plot(
+        self,
+        directory=None,
+        tex=USE_TEX,
+        show=True,
+        fig_ax_arr=None,
+        ext=DEFAULT_EXT,
+        **kwargs,
+    ):
         counts, (pre_nodes, post_nodes) = self.prepare_heatmap("count")
         areas, (pre_nodes2, post_nodes2) = self.prepare_heatmap("area")
 
@@ -187,10 +234,16 @@ class NormalisedDiffHeatMap(BaseHeatMap):
         ax = ax_arr.flatten()[0]
 
         cax = draw_heatmap(
-            ax, arr, None,
-            [n.name for n in pre_nodes], [n.name for n in post_nodes],
-            "Pre-synaptic partners", "Post-synaptic partners",
-            cmap="coolwarm", cmap_bounds=[-extreme, extreme], cell_labels=CellLabels.ZEROS
+            ax,
+            arr,
+            None,
+            [n.name for n in pre_nodes],
+            [n.name for n in post_nodes],
+            "Pre-synaptic partners",
+            "Post-synaptic partners",
+            cmap="coolwarm",
+            cmap_bounds=[-extreme, extreme],
+            cell_labels=CellLabels.ZEROS,
         )
         fig.colorbar(cax, ax=ax)
 

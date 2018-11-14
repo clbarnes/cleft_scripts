@@ -5,15 +5,35 @@ import matplotlib
 
 from clefts.constants import PACKAGE_ROOT
 from clefts.dist_fit import NormalVsLognormal
-from clefts.manual_label.plot.plot_classes.compare_area_violin import CompareAreaViolinPlot
+from clefts.manual_label.plot.plot_classes.compare_area_violin import (
+    CompareAreaViolinPlot,
+)
 
 matplotlib.rcParams["text.usetex"] = True  # noqa
 
-from clefts.manual_label.constants import ORN_PN_DIR, TABLE_FNAME, LN_BASIN_DIR, CHO_BASIN_DIR, DATA_DIRS, Circuit
+from clefts.manual_label.constants import (
+    ORN_PN_DIR,
+    TABLE_FNAME,
+    LN_BASIN_DIR,
+    CHO_BASIN_DIR,
+    DATA_DIRS,
+    Circuit,
+)
 from clefts.manual_label.plot.plot_classes import (
-    CountVsAreaPlot, LeftRightBiasPlot, AreaHistogramPlot, FracVsAreaPlot,
-    ExcitationInhibitionPlot, ContactNumberHeatMap, SynapticAreaHeatMap, NormalisedDiffHeatMap)
-from clefts.manual_label.plot.plot_utils import hdf5_to_multidigraph, contract_skeletons_multi, merge_multi
+    CountVsAreaPlot,
+    LeftRightBiasPlot,
+    AreaHistogramPlot,
+    FracVsAreaPlot,
+    ExcitationInhibitionPlot,
+    ContactNumberHeatMap,
+    SynapticAreaHeatMap,
+    NormalisedDiffHeatMap,
+)
+from clefts.manual_label.plot.plot_utils import (
+    hdf5_to_multidigraph,
+    contract_skeletons_multi,
+    merge_multi,
+)
 
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
@@ -22,14 +42,16 @@ plot_classes = [
     LeftRightBiasPlot,
     CountVsAreaPlot,
     AreaHistogramPlot,
-    ContactNumberHeatMap, SynapticAreaHeatMap, NormalisedDiffHeatMap,
+    ContactNumberHeatMap,
+    SynapticAreaHeatMap,
+    NormalisedDiffHeatMap,
 ]
 
 
 datasets = {
     "chordotonal-Basin": CHO_BASIN_DIR,
     "LN-Basin": LN_BASIN_DIR,
-    "ORN-PN": ORN_PN_DIR
+    "ORN-PN": ORN_PN_DIR,
 }
 
 
@@ -72,7 +94,9 @@ def cho_basin_plots(**kwargs):
     to_contract = set()
     for skid, data in multi_g.nodes(data=True):
         skel = data["obj"]
-        to_contract.add(frozenset(skel.find_copies(multi_g.graph["skeletons"]) + [skel]))
+        to_contract.add(
+            frozenset(skel.find_copies(multi_g.graph["skeletons"]) + [skel])
+        )
     multi_g = contract_skeletons_multi(multi_g, to_contract)
 
     for plot_class in plot_classes:
@@ -124,14 +148,14 @@ def syn_area_distribution():
         print(f"{circuit}: {NormalVsLognormal.from_data(data, 0.05/n)}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # logging.basicConfig(level=logging.INFO)
     logging.basicConfig(level=logging.DEBUG)
 
     kwargs = {
         "directory": PACKAGE_ROOT / "manual_label" / "figs",
-        "ext": 'pdf',
-        "show": False
+        "ext": "pdf",
+        "show": False,
     }
     orn_pn_plots(**kwargs)
     ln_basin_plots(**kwargs)

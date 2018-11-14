@@ -13,7 +13,7 @@ from catpy import CatmaidClient, CoordinateTransformer
 
 DEBUG = False
 
-ORDER = 'zyx'
+ORDER = "zyx"
 
 X3D_FORMAT_STR = """
 <?xml version="1.0" encoding="UTF-8"?>
@@ -33,32 +33,32 @@ X3D_FORMAT_STR = """
 
 
 def get_volume_by_id(catmaid, volume_id):
-    response = catmaid.get((catmaid.project_id, 'volumes', volume_id, '/'))
-    return response['bbox'], response['mesh']
+    response = catmaid.get((catmaid.project_id, "volumes", volume_id, "/"))
+    return response["bbox"], response["mesh"]
 
 
 def get_volume_by_name(catmaid, volume_name):
-    response = catmaid.get((catmaid.project_id, 'volumes/'))
+    response = catmaid.get((catmaid.project_id, "volumes/"))
 
     for row_dict in response:
-        if row_dict['name'] == volume_name:
-            return get_volume_by_id(catmaid, row_dict['id'])
+        if row_dict["name"] == volume_name:
+            return get_volume_by_id(catmaid, row_dict["id"])
     else:
         raise ValueError('Volume "{}" not found'.format(volume_name))
 
 
 def bbox_to_voxels(coord_trans, bbox_p):
-    bbox_s = {key: coord_trans.project_to_stack(bbox_p[key]) for key in ('min', 'max')}
+    bbox_s = {key: coord_trans.project_to_stack(bbox_p[key]) for key in ("min", "max")}
 
     vol = 1
     for dim in ORDER:
-        vol *= bbox_s['max'][dim] - bbox_s['min'][dim]
+        vol *= bbox_s["max"][dim] - bbox_s["min"][dim]
 
     return vol
 
 
 def dump_mesh(mesh, path):
-    with open(path, 'w') as f:
+    with open(path, "w") as f:
         f.write(X3D_FORMAT_STR.format(mesh))
 
 
@@ -104,29 +104,40 @@ def volume_to_voxels(volume, resolution):
 def bbox_to_volume(bbox):
     vol = 1
     for dim in ORDER:
-        vol *= bbox['max'][dim] - bbox['min'][dim]
+        vol *= bbox["max"][dim] - bbox["min"][dim]
 
     return vol
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if DEBUG:
         parsed_args = Namespace()
-        parsed_args.volume = 'PS_Neuropil_shrink'
-        parsed_args.credentials = os.path.expanduser('~/.secrets/catmaid/neurocean.json')
+        parsed_args.volume = "PS_Neuropil_shrink"
+        parsed_args.credentials = os.path.expanduser(
+            "~/.secrets/catmaid/neurocean.json"
+        )
         parsed_args.stack_id = 1
-        parsed_args.output = 'output/mesh.x3d'
+        parsed_args.output = "output/mesh.x3d"
     else:
         parser = ArgumentParser()
 
-        parser.add_argument('volume',
-                            help="Name or ID of CATMAID volume for which to fetch a mesh")
-        parser.add_argument('-c', '--credentials', required=True,
-                            help='Path to JSON file containing CATMAID credentials (as accepted by catpy)')
-        parser.add_argument('-o', '--output', required=True,
-                            help='Output file.')
-        parser.add_argument('-s', '--stack_id', type=int, default=None,
-                            help="If stack ID is passed, convert the mesh into stack coordinates")
+        parser.add_argument(
+            "volume", help="Name or ID of CATMAID volume for which to fetch a mesh"
+        )
+        parser.add_argument(
+            "-c",
+            "--credentials",
+            required=True,
+            help="Path to JSON file containing CATMAID credentials (as accepted by catpy)",
+        )
+        parser.add_argument("-o", "--output", required=True, help="Output file.")
+        parser.add_argument(
+            "-s",
+            "--stack_id",
+            type=int,
+            default=None,
+            help="If stack ID is passed, convert the mesh into stack coordinates",
+        )
 
         parsed_args = parser.parse_args()
 

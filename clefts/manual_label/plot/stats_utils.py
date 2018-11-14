@@ -13,10 +13,10 @@ def square_root_choice(values):
 
 
 def rice_rule(values):
-    return math.ceil(2 * len(values)**(1/3))
+    return math.ceil(2 * len(values) ** (1 / 3))
 
 
 def freedman_diaconis_rule(values):
     iqr = stats.iqr(values)
-    bin_width = 2 * iqr / len(values)**(1/3)
+    bin_width = 2 * iqr / len(values) ** (1 / 3)
     return math.ceil(np.ptp(values) / bin_width)

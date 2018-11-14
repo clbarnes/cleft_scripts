@@ -11,5 +11,7 @@ __all__ = [
     "LeftRightBiasPlot",
     "FracVsAreaPlot",
     "ExcitationInhibitionPlot",
-    "ContactNumberHeatMap", "SynapticAreaHeatMap", "NormalisedDiffHeatMap",
+    "ContactNumberHeatMap",
+    "SynapticAreaHeatMap",
+    "NormalisedDiffHeatMap",
 ]

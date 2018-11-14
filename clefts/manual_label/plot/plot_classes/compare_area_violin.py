@@ -22,17 +22,17 @@ def ranksum(x, y):
 
 
 def pformat(value, precision=3, use_tex=USE_TEX):
-    approx = r'\approx' if use_tex else '~'
+    approx = r"\approx" if use_tex else "~"
     fmt = "p {{}} {{:.{}f}}".format(precision)
     if use_tex:
-        fmt = '$' + fmt + '$'
+        fmt = "$" + fmt + "$"
 
     if value == 0:
         s = fmt.format(approx, 0)
     else:
         s = fmt.format(approx, value)
         if s == pformat(0, precision, use_tex):
-            s = fmt.format('<', 1 / 10**precision)
+            s = fmt.format("<", 1 / 10 ** precision)
 
     return s
 
@@ -52,11 +52,14 @@ def sort_combinations(combs, data):
 
 
 def draw_p_brackets(
-        data: Sequence[Sequence[Number]],
-        p_fn: Optional[Callable[[Sequence[float], Sequence[float]], float]]=ranksum,
-        ax: Optional[Axes]=None, combs: Optional[List[Tuple[int, int]]]=None,
-        centers: List[Number]=None, bracket_offset_ppn: float=0.06, min_bracket_height_ppn: float=0.03,
-        fs: Number=None
+    data: Sequence[Sequence[Number]],
+    p_fn: Optional[Callable[[Sequence[float], Sequence[float]], float]] = ranksum,
+    ax: Optional[Axes] = None,
+    combs: Optional[List[Tuple[int, int]]] = None,
+    centers: List[Number] = None,
+    bracket_offset_ppn: float = 0.06,
+    min_bracket_height_ppn: float = 0.03,
+    fs: Number = None,
 ) -> Tuple[List[Line2D], List[Text]]:
     """
     Adapted from https://stackoverflow.com/a/52333561/2700168
@@ -78,7 +81,7 @@ def draw_p_brackets(
     -------
     Line2D objects, Text objects
     """
-    data_ptp = (max(max(s) for s in data) - min(min(s) for s in data))
+    data_ptp = max(max(s) for s in data) - min(min(s) for s in data)
     bracket_offset = data_ptp * bracket_offset_ppn
     no_bracket = min_bracket_height_ppn is None
     bracket_height = data_ptp * (min_bracket_height_ppn or 0)
@@ -114,10 +117,10 @@ def draw_p_brackets(
 
         pstr = pformat(p_fn(data1, data2))
 
-        line = ax.plot(bracket_x, bracket_y, c='k')
-        kwargs = dict(ha='center', va='bottom')
+        line = ax.plot(bracket_x, bracket_y, c="k")
+        kwargs = dict(ha="center", va="bottom")
         if fs is not None:
-            kwargs['fontsize'] = fs
+            kwargs["fontsize"] = fs
 
         text = ax.text(np.mean(bracket_x), bracket_maxy, pstr, **kwargs)
 
@@ -125,7 +128,7 @@ def draw_p_brackets(
         texts[(idx1, idx2)] = text
 
     ymin, _ = ax.get_ylim()
-    ax.set_ylim(ymin, max(highest_over.values()) + 3*bracket_offset)
+    ax.set_ylim(ymin, max(highest_over.values()) + 3 * bracket_offset)
 
     sorted_lines = []
     sorted_texts = []
@@ -140,7 +143,16 @@ def draw_p_brackets(
 class CompareAreaViolinPlot(BasePlot):
     title_base = "Cross-system comparison of synapse size"
 
-    def plot(self, directory=None, tex=USE_TEX, show=True, fig_ax_arr=None, ext=DEFAULT_EXT, log=False, **kwargs):
+    def plot(
+        self,
+        directory=None,
+        tex=USE_TEX,
+        show=True,
+        fig_ax_arr=None,
+        ext=DEFAULT_EXT,
+        log=False,
+        **kwargs
+    ):
         np.random.seed(self.SEED)
 
         areas_by_circuit = defaultdict(list)
@@ -154,14 +166,20 @@ class CompareAreaViolinPlot(BasePlot):
 
         # todo: log this?
         sorted_circuits = sorted(areas_by_circuit)
-        dataset = [sorted(areas_by_circuit[key]) for key in sorted_circuits] + [combined]
+        dataset = [sorted(areas_by_circuit[key]) for key in sorted_circuits] + [
+            combined
+        ]
         labels = [str(c) for c in sorted_circuits] + ["Combined"]
 
         scatterx = []
         scattery = []
         for midpoint, points in enumerate(dataset, 1):
             scattery.extend(points)
-            scatterx.extend((np.random.beta(BETA_PARAM, BETA_PARAM, size=(len(points), )) - 0.5) * 0.5 + midpoint)
+            scatterx.extend(
+                (np.random.beta(BETA_PARAM, BETA_PARAM, size=(len(points),)) - 0.5)
+                * 0.5
+                + midpoint
+            )
 
         fig, ax_arr = self._fig_ax(fig_ax_arr)
         ax: Axes = ax_arr.flatten()[0]
@@ -181,7 +199,7 @@ class CompareAreaViolinPlot(BasePlot):
         ax.set_xlabel("circuit")
         ax.set_title(self.title_base)
 
-        ax.set_xticks(list(range(1, 1+len(labels))))
+        ax.set_xticks(list(range(1, 1 + len(labels))))
         ax.set_xticklabels(labels, rotation=45, ha="right")
 
         plt.tight_layout()

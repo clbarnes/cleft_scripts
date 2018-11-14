@@ -8,21 +8,21 @@ from clefts.constants import RESOLUTION, PACKAGE_ROOT
 
 
 class Circuit(StrEnum):
-    ORN_PN = 'ORN-PN'
-    LN_BASIN = 'LN-Basin'
-    CHO_BASIN = 'cho-Basin'
+    ORN_PN = "ORN-PN"
+    LN_BASIN = "LN-Basin"
+    CHO_BASIN = "cho-Basin"
 
     def annotation(self):
-        return 'clb_' + str(self)
+        return "clb_" + str(self)
 
     def token(self):
-        return ''.join(c for c in str(self).lower() if c in ascii_lowercase)
+        return "".join(c for c in str(self).lower() if c in ascii_lowercase)
 
     def tex(self):
-        return '\\' + self.token()
+        return "\\" + self.token()
 
     def tex_short(self):
-        return "{} $\\rightarrow$ {}".format(*str(self).split('-'))
+        return "{} $\\rightarrow$ {}".format(*str(self).split("-"))
 
 
 MANUAL_CLEFTS_DIR = Path("/data2/manual_clefts")
@@ -49,6 +49,8 @@ CONNECTORS_KEY = "connectors"
 ROI_KEY = "roi"
 DFS_KEYS = [SKELS_KEY, CONNECTORS_KEY, ROI_KEY]
 
-PX_AREA = np.mean([RESOLUTION['x'], np.sqrt(2*RESOLUTION['x']**2)]) * RESOLUTION['z']
+PX_AREA = (
+    np.mean([RESOLUTION["x"], np.sqrt(2 * RESOLUTION["x"] ** 2)]) * RESOLUTION["z"]
+)
 
 TABLES_DIR = PACKAGE_ROOT / "manual_label" / "tables"

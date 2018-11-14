@@ -7,10 +7,10 @@ from clefts.manual_label.plot.plot_classes import CountVsAreaPlot
 
 
 class FracVsAreaPlot(CountVsAreaPlot):
-    title_base = 'Synaptic fraction vs. contact number'
-    xlabel = 'syn. fraction'
+    title_base = "Synaptic fraction vs. contact number"
+    xlabel = "syn. fraction"
 
-    def __init__(self, graph: nx.MultiDiGraph, post_counts: Dict[str, int], name=''):
+    def __init__(self, graph: nx.MultiDiGraph, post_counts: Dict[str, int], name=""):
         super().__init__(graph, name)
         self.graph = self._normalise_post_count(post_counts)
 

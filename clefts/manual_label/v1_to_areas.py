@@ -65,7 +65,7 @@ def arr_from_hdf(fpath):
 
 
 def recognise_dtype(key):
-    if key.endswith('id'):
+    if key.endswith("id"):
         return int
     if "name" in key:
         return str
@@ -83,32 +83,38 @@ def mirror_name(name):
 
 def hdfs_to_table(skid_to_name, hdf5_paths, out_path):
     headers = [
-        'conn_id',
-        'conn_x',
-        'conn_y',
-        'conn_z',
-        'pre_tnid',
-        'pre_skid',
-        'pre_tn_x',
-        'pre_tn_y',
-        'pre_tn_z',
-        'post_tnid',
-        'post_skid',
-        'post_tn_x',
-        'post_tn_y',
-        'post_tn_z',
-        'pre_conn_dist',
-        'post_conn_dist',
-        'max_dist',
-        'pad',
-        'area',
-        'pre_skel_name',
-        'post_skel_name',
-        'pre_skel_name_mirror',
-        'post_skel_name_mirror'
+        "conn_id",
+        "conn_x",
+        "conn_y",
+        "conn_z",
+        "pre_tnid",
+        "pre_skid",
+        "pre_tn_x",
+        "pre_tn_y",
+        "pre_tn_z",
+        "post_tnid",
+        "post_skid",
+        "post_tn_x",
+        "post_tn_y",
+        "post_tn_z",
+        "pre_conn_dist",
+        "post_conn_dist",
+        "max_dist",
+        "pad",
+        "area",
+        "pre_skel_name",
+        "post_skel_name",
+        "pre_skel_name_mirror",
+        "post_skel_name_mirror",
     ]
 
-    calculated_keys = ["area", "pre_skel_name", "post_skel_name", "pre_skel_name_mirror", "post_skel_name_mirror"]
+    calculated_keys = [
+        "area",
+        "pre_skel_name",
+        "post_skel_name",
+        "pre_skel_name_mirror",
+        "post_skel_name_mirror",
+    ]
 
     rows = []
     for fpath in tqdm(hdf5_paths):
@@ -118,9 +124,9 @@ def hdfs_to_table(skid_to_name, hdf5_paths, out_path):
         d = {key: attrs[key] for key in headers if key not in calculated_keys}
         arr = arr_from_hdf(fpath)
         cleft_areas = LinearAreaCalculator(arr).calculate()
-        assert len(cleft_areas) == 1, (
-            f"v1 annotations should only have 1 cleft per HDF5, {fpath} has {len(cleft_areas)}"
-        )
+        assert (
+            len(cleft_areas) == 1
+        ), f"v1 annotations should only have 1 cleft per HDF5, {fpath} has {len(cleft_areas)}"
 
         d["area"] = cleft_areas.popitem()[1]
         d["pre_skel_name"] = skid_to_name[int(attrs["pre_skid"])]
@@ -147,7 +153,7 @@ def main():
     ]
 
     skid_to_name = dict()
-    with open(CHO_BASIN_DIR / 'skeletons.json') as f:
+    with open(CHO_BASIN_DIR / "skeletons.json") as f:
         d = json.load(f)
 
     for skel_list in d.values():
@@ -157,6 +163,6 @@ def main():
     hdfs_to_table(skid_to_name, fpaths, CHO_BASIN_DIR / "table_noskel.hdf5")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     main()
