@@ -27,14 +27,11 @@ class EffectSizeClass(Enum):
     LARGE = 0.8
     VERY_LARGE = 1.2
     HUGE = 2
-    OFF_THE_CHARTS = np.inf
 
     @classmethod
     def from_value(cls, value):
         abs_val = abs(value)
-        for es in cls:
-            if abs_val < es.value:
-                return es
+        return min(cls, key=lambda es: abs(abs_val - es.value))
 
     def citation(self):
         cls = type(self)
@@ -57,12 +54,15 @@ class CohensD:
     def effect_size_class(self):
         return EffectSizeClass.from_value(self.effect_size)
 
+    def __str__(self):
+        return f"d_cohen = {self.effect_size} ({self.effect_size_class().name})"
+
 
 def cohens_d(sample1, sample2):
     sd_pooled = np.sqrt(
         (
-            ((len(sample1) - 1) * np.std(sample1) ** 2)
-            + ((len(sample2) - 1) * np.std(sample2) ** 2)
+            ((len(sample1) - 1) * (np.std(sample1) ** 2))
+            + ((len(sample2) - 1) * (np.std(sample2) ** 2))
         )
         / (len(sample1) + len(sample2) - 2)
     )
@@ -90,4 +90,4 @@ def cliffs_delta(sample1, sample2):
     total = 0
     for xi, xj in product(sample1, sample2):
         total += (int(xi > xj) - int(xi < xj))
-    return total / len(sample1) * len(sample2)
+    return total / (len(sample1) * len(sample2))

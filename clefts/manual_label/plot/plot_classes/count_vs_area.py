@@ -7,7 +7,7 @@ from scipy import stats
 
 from clefts.manual_label.plot.plot_classes.base_plot import BasePlot
 from clefts.manual_label.plot.constants import USE_TEX, DEFAULT_EXT
-from clefts.manual_label.plot.plot_utils import (
+from clefts.manual_label.plot_utils import (
     multidigraph_to_digraph,
     latex_float,
     ensure_sign,

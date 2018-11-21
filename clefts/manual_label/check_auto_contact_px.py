@@ -7,8 +7,8 @@ import numpy as np
 
 from clefts.catmaid_interface import get_catmaid
 from clefts.constants import RESOLUTION
-from clefts.manual_label.plot.make_plots import get_data
-from clefts.manual_label.plot.plot_utils import (
+from clefts.manual_label.common import get_data
+from clefts.manual_label.plot_utils import (
     multidigraph_to_digraph,
     latex_float,
     ensure_sign,

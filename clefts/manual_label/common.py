@@ -1,10 +1,12 @@
+import networkx as nx
 import os
 from typing import NamedTuple, Tuple
 
 import pandas as pd
 import numpy as np
 
-from clefts.manual_label.constants import TABLE_FNAME, DFS_KEYS
+from clefts.manual_label.constants import TABLE_FNAME, DFS_KEYS, Circuit, DATA_DIRS
+from clefts.manual_label.plot_utils import hdf5_to_multidigraph, merge_multi
 
 
 class ROI:
@@ -117,3 +119,13 @@ def hdf_join(path, *args):
         arg = arg.strip("/")
         path += "/" + arg
     return path
+
+
+def get_data(circuit: Circuit) -> nx.MultiDiGraph:
+    """Returns graph with one edge per treenode-treenode connection"""
+    hdf_path = DATA_DIRS[circuit] / TABLE_FNAME
+    return hdf5_to_multidigraph(hdf_path, circuit)
+
+
+def get_merged_all() -> nx.MultiDiGraph:
+    return merge_multi(*(get_data(circuit) for circuit in list(Circuit)))

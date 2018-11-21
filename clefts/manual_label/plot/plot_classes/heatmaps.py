@@ -12,7 +12,7 @@ from warnings import warn
 
 from clefts.manual_label.plot.constants import USE_TEX, DEFAULT_EXT
 from clefts.manual_label.plot.plot_classes.base_plot import BasePlot
-from clefts.manual_label.plot.plot_utils import multidigraph_to_digraph
+from clefts.manual_label.plot_utils import multidigraph_to_digraph
 from clefts.manual_label.skeleton import CircuitNode
 
 

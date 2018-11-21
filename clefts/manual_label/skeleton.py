@@ -16,7 +16,15 @@ from pathlib import Path
 
 from clefts.common import StrEnum
 from clefts.manual_label.plot.constants import USE_TEX
-from clefts.manual_label.common import hdf_join
+
+
+def hdf_join(path, *args):
+    """Like os.path.join, but for HDF5 hierarchies. N.B. strips trailing, but not leading, slash from entire path"""
+    path = path.rstrip("/")
+    for arg in args:
+        arg = arg.strip("/")
+        path += "/" + arg
+    return path
 
 
 @functools.total_ordering

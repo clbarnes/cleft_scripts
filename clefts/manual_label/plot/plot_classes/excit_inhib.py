@@ -5,7 +5,7 @@ import numpy as np
 from scipy import stats
 
 from clefts.manual_label.plot.constants import USE_TEX, DEFAULT_EXT
-from clefts.manual_label.plot.plot_utils import latex_float, ensure_sign
+from clefts.manual_label.plot_utils import latex_float, ensure_sign
 from .base_plot import BasePlot
 
 

@@ -5,6 +5,7 @@ import matplotlib
 
 from clefts.constants import PACKAGE_ROOT
 from clefts.dist_fit import NormalVsLognormal
+from clefts.manual_label.common import get_data, get_merged_all
 from clefts.manual_label.plot.plot_classes.compare_area_violin import (
     CompareAreaViolinPlot,
 )
@@ -13,10 +14,8 @@ matplotlib.rcParams["text.usetex"] = True  # noqa
 
 from clefts.manual_label.constants import (
     ORN_PN_DIR,
-    TABLE_FNAME,
     LN_BASIN_DIR,
     CHO_BASIN_DIR,
-    DATA_DIRS,
     Circuit,
 )
 from clefts.manual_label.plot.plot_classes import (
@@ -29,8 +28,7 @@ from clefts.manual_label.plot.plot_classes import (
     SynapticAreaHeatMap,
     NormalisedDiffHeatMap,
 )
-from clefts.manual_label.plot.plot_utils import (
-    hdf5_to_multidigraph,
+from clefts.manual_label.plot_utils import (
     contract_skeletons_multi,
     merge_multi,
 )
@@ -53,16 +51,6 @@ datasets = {
     "LN-Basin": LN_BASIN_DIR,
     "ORN-PN": ORN_PN_DIR,
 }
-
-
-def get_data(circuit: Circuit) -> nx.MultiDiGraph:
-    """Returns graph with one edge per treenode-treenode connection"""
-    hdf_path = DATA_DIRS[circuit] / TABLE_FNAME
-    return hdf5_to_multidigraph(hdf_path, circuit)
-
-
-def get_merged_all() -> nx.MultiDiGraph:
-    return merge_multi(*(get_data(circuit) for circuit in list(Circuit)))
 
 
 def get_merged_basin():

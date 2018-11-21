@@ -2,7 +2,7 @@ import numpy as np
 import logging
 import networkx as nx
 
-from clefts.manual_label.plot.plot_utils import multidigraph_to_digraph
+from clefts.manual_label.plot_utils import multidigraph_to_digraph
 from clefts.manual_label.plot.constants import USE_TEX, DEFAULT_EXT
 from clefts.manual_label.skeleton import SkeletonGroup, edge_name
 from .base_plot import BasePlot
