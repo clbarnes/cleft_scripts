@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class CountVsAreaPlot(BasePlot):
-    title_base = "Synaptic count vs. contact number"
+    title_base = "Synaptic area vs. contact number"
     xlabel = "syn. count"
 
     def __init__(self, graph: nx.MultiDiGraph, name=""):
