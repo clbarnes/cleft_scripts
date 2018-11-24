@@ -3,7 +3,7 @@ import csv
 from clefts.manual_label.common import get_data
 from clefts.manual_label.constants import Circuit, TABLES_DIR
 from clefts.manual_label.plot_utils import multidigraph_to_digraph
-from clefts.manual_label.tables.common import iter_data
+from clefts.manual_label.make_tables.common import iter_data
 
 
 data_dir = TABLES_DIR / "out" / "count_area"
