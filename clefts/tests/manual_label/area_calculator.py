@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 
 from clefts.manual_label.area_calculator import (
@@ -6,8 +8,9 @@ from clefts.manual_label.area_calculator import (
     LinearAreaCalculator,
     TrapezoidAreaCalculator,
     GaussianSmoothedAreaCalculator,
-    im_to_graph, graph_to_path, smooth_linestring, coords_to_len
 )
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 plane9 = (
@@ -45,16 +48,20 @@ for Calculator in [
     TrapezoidAreaCalculator,
     GaussianSmoothedAreaCalculator,
 ]:
+    name = Calculator.__name__
+    kwargs = dict()
+    if "Gaussian" in name:
+        kwargs["sigma"] = 0.5  # prevent smoother from shortening line too much
     print(Calculator.__name__)
-    results = Calculator(arr).calculate()
+    results = Calculator(arr, **kwargs).calculate()
     for key, value in sorted(results.items()):
         print(f"\t{key}: {value}")
 
 print("N.B. Gaussian is small because it shrinks lines")
 
 
-path9 = graph_to_path(im_to_graph(plane9 == 9))
-len9 = coords_to_len(path9)
-len9_smooth = coords_to_len(smooth_linestring(path9, 1))
-
-print(path9, len9, len9_smooth)
+# path9 = graph_to_path(im_to_graph(plane9 == 9))
+# len9 = coords_to_len(path9)
+# len9_smooth = coords_to_len(smooth_linestring(path9, 1))
+#
+# print(path9, len9, len9_smooth)

@@ -2,6 +2,7 @@ import networkx as nx
 from scipy.ndimage import convolve, gaussian_filter1d
 from skimage.morphology import skeletonize
 from typing import Dict
+import logging
 
 import numpy as np
 from abc import ABCMeta, abstractmethod
@@ -14,11 +15,13 @@ Y_RES = RESOLUTION["y"]
 X_RES = RESOLUTION["x"]
 DIAG_LEN = np.linalg.norm([X_RES, Y_RES])
 
-DEFAULT_SIGMA = 3*X_RES
+DEFAULT_SIGMA = 3
+
 
 class AreaCalculator(metaclass=ABCMeta):
     def __init__(self, arr):
         self.arr = arr
+        self.logger = logging.getLogger(f"{__name__}.{type(self).__name__}")
 
     def label_set(self, arr=None):
         arr = self.arr if arr is None else arr
@@ -134,32 +137,22 @@ def im_to_graph(skeletonized: np.ndarray):
     return g
 
 
-def graph_to_path(g: nx.Graph):
-    start, end = [coord for coord, deg in g.degree if deg == 1]
-    return nx.shortest_path(g, start, end)
-
-
-def smooth_linestring(coords, sigma=3):
-    coords = np.asarray(coords, dtype=float)
-    return gaussian_filter1d(coords, sigma=sigma, axis=0)
-
-
-def coords_to_len(coords):
-    coords = np.asarray(coords, dtype=float)
-    norms = np.linalg.norm(np.diff(coords, axis=0), axis=1)
-    return sum(norms)
-
-
-def smooth_skel_im(skeletonized, sigma=DEFAULT_SIGMA):
-    g = im_to_graph(skeletonized)
-    path = graph_to_path(g)
-    return smooth_linestring(path, sigma)
-
-
 class GaussianSmoothedAreaCalculator(AreaCalculator):
+    def __init__(self, arr, sigma=DEFAULT_SIGMA):
+        super().__init__(arr)
+        self.sigma = sigma
+
     def length(self, skeletonized_2d):
-        smoothed = smooth_skel_im(skeletonized_2d)
-        return coords_to_len(smoothed) * RESOLUTION['x']
+        length = 0
+        g = im_to_graph(skeletonized_2d)
+        for nodes in nx.connected_components(g):
+            subgraph = g.subgraph(nodes)
+            start, end = [coord for coord, deg in subgraph.degree if deg == 1]
+            linestring = np.asarray(nx.shortest_path(subgraph, start, end), dtype=float)
+            smoothed = gaussian_filter1d(linestring, sigma=self.sigma, axis=0) * RESOLUTION['x']
+            length += np.linalg.norm(np.diff(smoothed, axis=0), axis=1).sum()
+
+        return length
 
     def calculate(self):
         total_areas = dict()
