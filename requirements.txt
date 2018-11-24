@@ -1,12 +1,15 @@
 numpy
 h5py
 pandas
+tables
 networkx
 scipy
 smalldataviewer
 matplotlib
 catpy
 coordinates
-git@github.com:clbarnes/cremi_python.git@n5
+git+git://github.com/clbarnes/cremi_python.git@n5
 ipython
 bootstrapped
+psycopg2
+scikit-image
