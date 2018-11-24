@@ -12,6 +12,7 @@ import numpy as np
 
 from catpy import CatmaidClient
 from catpy.applications.base import CatmaidClientApplication
+from typing import List, Dict, Any
 
 from clefts.common import offset_shape_to_dicts
 from clefts.constants import DB_CREDENTIALS_PATH, CREDENTIALS_PATH, PROJECT_ID
@@ -73,7 +74,7 @@ class CircuitConnectorAPI(CatmaidClientApplication):
             )
         return int(annotation_ids[0])
 
-    def get_skeletons_by_annotation(self, annotation_id_or_name):
+    def get_skeletons_by_annotation(self, annotation_id_or_name) -> List[Dict[str, Any]]:
         """
         Get a set of neurons with a given annotation.
 

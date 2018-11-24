@@ -17,12 +17,14 @@ class N5ImageFetcher:
             N5 dataset offset compared to the canonical JPEG image stack. Default (0, -1, 0)
         """
 
+        self.offset_px = offset_px or (0, 0, 0)
+
         self.n5_path = n5_path
         self.ds_path = ds_path
-        self.offset_px = offset_px
+        self.n5_file = z5py.N5File(self.n5_path, mode='r')
+        self.n5_ds = self.n5_file[self.ds_path]
 
     def get_stack_space(self, roi):
         roi = np.asarray(roi) + self.offset_px
         slicing = tuple(slice(start, stop) for start, stop in roi.T)
-        with z5py.N5File(self.n5_path, "r") as f:
-            return f[self.ds_path][slicing]
+        return self.n5_ds[slicing]

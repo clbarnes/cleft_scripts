@@ -299,16 +299,16 @@ class SynapseImageFetcher:
             for key, value in row.items():
                 f.h5file.attrs[key] = value
 
-        df.to_hdf(path, "tables/connectors")
+        df.to_hdf(path, "make_tables/connectors")
         for name, this_table in zip(
             ["stack_offset", "shape_px", "project_offset"],
             [stack_offsets_rows, px_shapes_rows, project_offsets_rows],
         ):
             this_df = pd.DataFrame(this_table, columns=["z", "y", "x"], index=df.index)
-            this_df.to_hdf(path, "tables/" + name)
+            this_df.to_hdf(path, "make_tables/" + name)
 
         z_df = pd.DataFrame(z_offsets, index=df.index, columns=["z"])
-        z_df.to_hdf(path, "tables/z_offset")
+        z_df.to_hdf(path, "make_tables/z_offset")
 
     def write_multicremi(self, rows, path, mode="w-"):
         offset_shapes = []
@@ -373,7 +373,7 @@ class SynapseImageFetcher:
             ds = f.h5file.create_dataset(Dataset.PRE_TO_CONN, data=pre_to_conn_arr)
             ds.attrs["explanation"] = PRE_TO_CONN_EXPL
 
-        rows.to_hdf(path, "tables/connectors")
+        rows.to_hdf(path, "make_tables/connectors")
 
     def process(self, base_name, mode="w-"):
         df = self.get_connectors()
@@ -498,6 +498,19 @@ class LnBasinGetter(SkelInfoGetter):
         return {"pre": pre_skel_info, "post": post_skel_info}
 
 
+class BroadPNGetter(SkelInfoGetter):
+    """broad D1 and D2 onto PNs 45a and 82a"""
+    output_dir = "broad-PN"
+
+    def fetch(self):
+        pre_skel_info = self.catmaid.get_skeletons_by_annotation("clb broad D1 D2 area measurements")
+        post_skel_info = []
+        for annotation in ["82a PN", "45a PN"]:
+            post_skel_info.extend(self.catmaid.get_skeletons_by_annotation(annotation))
+
+        return {"pre": pre_skel_info, "post": post_skel_info}
+
+
 def write_cremis(
     output_root,
     mode="w-",
@@ -522,6 +535,6 @@ def write_cremis(
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.WARNING)
+    logging.basicConfig(level=logging.INFO)
 
-    write_cremis(output, "w", catmaid, n5_im_fetcher, LnBasinGetter)
+    write_cremis(output, "w", catmaid, n5_im_fetcher, BroadPNGetter)

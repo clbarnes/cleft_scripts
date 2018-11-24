@@ -19,8 +19,9 @@ PROJECT_ROOT = PACKAGE_ROOT.parent
 OUTPUT_ROOT = PROJECT_ROOT / "output"
 ANTENNAL_LOBE_OUTPUT = OUTPUT_ROOT / "antennal_lobe"
 
-N5_PATH = Path.home() / "shares" / "nearline" / "barnesc" / "0111-8_whole_L1_CNS-2.n5"
-VOLUME_DS = "volumes/raw/s0"
+# N5_PATH = Path.home() / "shares" / "nearline" / "barnesc" / "0111-8_whole_L1_CNS-2.n5"
+N5_PATH = Path.home() / "shares" / "nrs" / "zlatic" / "championa" / "0111-8_whole_L1_CNS.n5"
+VOLUME_DS = "volumes/raw/c0/s0"
 # the n5 export is 1px off the JPEG export
 N5_OFFSET = (0, -1, 0)
 
@@ -49,7 +50,7 @@ class Dataset:
     CLEFTS = "/volumes/labels/clefts"
     PARTNERS = "/annotations/presynaptic_site/partners"
     RAW = "/volumes/raw"
-    CONN_TABLE = "/tables/connectors"
+    CONN_TABLE = "/make_tables/connectors"
     # "/annotations/ids"
     # "/annotations/comments/target_ids"
     # "/complete_segments"

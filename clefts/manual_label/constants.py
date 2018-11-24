@@ -53,4 +53,4 @@ PX_AREA = (
     np.mean([RESOLUTION["x"], np.sqrt(2 * RESOLUTION["x"] ** 2)]) * RESOLUTION["z"]
 )
 
-TABLES_DIR = PACKAGE_ROOT / "manual_label" / "tables"
+TABLES_DIR = PACKAGE_ROOT / "manual_label" / "make_tables"
