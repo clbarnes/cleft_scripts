@@ -11,6 +11,7 @@ class Circuit(StrEnum):
     ORN_PN = "ORN-PN"
     LN_BASIN = "LN-Basin"
     CHO_BASIN = "cho-Basin"
+    BROAD_PN = "broad-PN"
 
     def annotation(self):
         return "clb_" + str(self)
@@ -31,6 +32,7 @@ DATA_DIRS = {
     Circuit.ORN_PN: MANUAL_CLEFTS_DIR / "82a_45a_ORN-PN",
     Circuit.LN_BASIN: MANUAL_CLEFTS_DIR / "LN-basin",
     Circuit.CHO_BASIN: MANUAL_CLEFTS_DIR / "cho-basin",
+    Circuit.BROAD_PN: MANUAL_CLEFTS_DIR / "broad-PN"
 }
 
 CHO_BASIN_DIR = DATA_DIRS[Circuit.CHO_BASIN]

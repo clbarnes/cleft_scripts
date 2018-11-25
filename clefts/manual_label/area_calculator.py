@@ -15,7 +15,7 @@ Y_RES = RESOLUTION["y"]
 X_RES = RESOLUTION["x"]
 DIAG_LEN = np.linalg.norm([X_RES, Y_RES])
 
-DEFAULT_SIGMA = 3
+DEFAULT_SIGMA = 2
 
 
 class AreaCalculator(metaclass=ABCMeta):
@@ -238,3 +238,6 @@ class ContortedSheetAreaCalculator(LinearAreaCalculator):
 
         """
         raise NotImplementedError()
+
+
+DefaultAreaCalculator = LinearAreaCalculator

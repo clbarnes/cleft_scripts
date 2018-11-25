@@ -9,7 +9,7 @@ import pandas as pd
 import traceback
 from tqdm import tqdm
 
-from clefts.manual_label.area_calculator import LinearAreaCalculator
+from clefts.manual_label.area_calculator import DefaultAreaCalculator
 from cremi import CremiFile
 
 from clefts.manual_label.constants import SPECIAL_INTS, PX_AREA, ORN_PN_DIR, RESOLUTION
@@ -174,7 +174,7 @@ def edges_to_labels(annotations, canvas, edges):
 
 
 def count_px(arr, ignore=tuple(SPECIAL_INTS)):
-    return LinearAreaCalculator(arr).calculate()
+    return DefaultAreaCalculator(arr).calculate()
     # labels = np.unique(arr)
     # output = dict()
     # for label in tqdm(labels, desc="counting labelled px"):
@@ -195,7 +195,7 @@ def conn_areas_from_file(path):
         annotations, canvas, set(zip(conn_df["pre_tnid"], conn_df["post_tnid"]))
     )
 
-    area_dict = LinearAreaCalculator(canvas).calculate()
+    area_dict = DefaultAreaCalculator(canvas).calculate()
     areas = [
         area_dict[edge_labels[(int(row["pre_tnid"]), int(row["post_tnid"]))]]
         for _, row in conn_df.iterrows()

@@ -365,6 +365,8 @@ class Skeleton(CircuitNode):
             return cls._from_LN_name(skid, name, annotations, **kwargs)
         if " ORN " in name or " PN " in name:
             return cls._from_ORN_PN_name(skid, name, annotations, **kwargs)
+        if "broad" in name:
+            return cls._from_broad_name(skid, name, annotations, **kwargs)
         if re.match(r"^[lv]\'?ch.*\sa1[lr]$", name):
             return cls._from_cho_name(skid, name, annotations, **kwargs)
 
@@ -408,6 +410,20 @@ class Skeleton(CircuitNode):
             ["{} {}".format(number, class_)],
             [number, class_],
             annotations,
+        )
+
+    @classmethod
+    def _from_broad_name(cls, skid, name, annotations=None, **kwargs):
+        class_, subclass, side = name.split()
+        subclass_letters = subclass.rstrip('0123456789')
+        return cls(
+            skid,
+            name,
+            Side.from_str(side),
+            Segment.UNDEFINED,
+            [f"{class_} {subclass}"],  # classes
+            [class_, subclass, subclass_letters],  # superclasses
+            annotations
         )
 
     @classmethod

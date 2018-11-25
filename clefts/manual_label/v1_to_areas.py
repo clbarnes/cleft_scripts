@@ -8,7 +8,7 @@ import json
 from tqdm import tqdm
 import pandas as pd
 
-from clefts.manual_label.area_calculator import LinearAreaCalculator
+from clefts.manual_label.area_calculator import DefaultAreaCalculator
 from clefts.manual_label.constants import PX_AREA, CHO_BASIN_DIR, SPECIAL_INTS
 
 
@@ -123,7 +123,7 @@ def hdfs_to_table(skid_to_name, hdf5_paths, out_path):
 
         d = {key: attrs[key] for key in headers if key not in calculated_keys}
         arr = arr_from_hdf(fpath)
-        cleft_areas = LinearAreaCalculator(arr).calculate()
+        cleft_areas = DefaultAreaCalculator(arr).calculate()
         assert (
             len(cleft_areas) == 1
         ), f"v1 annotations should only have 1 cleft per HDF5, {fpath} has {len(cleft_areas)}"

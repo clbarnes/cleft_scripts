@@ -194,7 +194,7 @@ class CompareAreaViolinPlot(BasePlot):
         else:
             ax.set_ylabel("synapse area ($nm^2$)")
 
-        draw_p_brackets(dataset, ranksum, ax, list(combinations(range(3), 2)), **kwargs)
+        draw_p_brackets(dataset, ranksum, ax, list(combinations(range(len(sorted_circuits)), 2)), **kwargs)
 
         ax.set_xlabel("circuit")
         ax.set_title(self.title_base)
