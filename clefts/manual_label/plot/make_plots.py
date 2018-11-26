@@ -146,14 +146,14 @@ if __name__ == "__main__":
 
     kwargs = {
         "directory": PACKAGE_ROOT / "manual_label" / "figs",
-        "ext": "pdf",
+        "ext": "svg",
         "show": False,
     }
-    # orn_pn_plots(**kwargs)
-    # ln_basin_plots(**kwargs)
-    # cho_basin_plots(**kwargs)
-    # broad_pn_plots(**kwargs)
-    # ln_cho_basin_plot(**kwargs)
+    orn_pn_plots(**kwargs)
+    ln_basin_plots(**kwargs)
+    cho_basin_plots(**kwargs)
+    broad_pn_plots(**kwargs)
+    ln_cho_basin_plot(**kwargs)
     compare_syn_area(**kwargs)
 
-    # syn_area_distribution()
+    syn_area_distribution()

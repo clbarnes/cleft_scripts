@@ -137,6 +137,31 @@ def im_to_graph(skeletonized: np.ndarray):
     return g
 
 
+def partition_tree(g):
+    ends = [coord for coord, deg in g.degree if deg == 1]
+    if len(g) < 2:
+        raise ValueError("Graph is cyclic")
+
+    root, *leaves = ends
+
+    paths = nx.single_target_shortest_path(g, root)
+    visited = set()
+    for leaf in leaves:
+        path = []
+        for node in paths[leaf]:
+            path.append(node)
+            if node in visited:
+                break
+        yield path
+        visited.update(path)
+
+
+def partition_forest(g):
+    for nodes in nx.connected_components(g):
+        subgraph = g.subgraph(nodes)
+        yield from partition_tree(subgraph)
+
+
 class GaussianSmoothedAreaCalculator(AreaCalculator):
     def __init__(self, arr, sigma=DEFAULT_SIGMA):
         super().__init__(arr)
@@ -145,11 +170,8 @@ class GaussianSmoothedAreaCalculator(AreaCalculator):
     def length(self, skeletonized_2d):
         length = 0
         g = im_to_graph(skeletonized_2d)
-        for nodes in nx.connected_components(g):
-            subgraph = g.subgraph(nodes)
-            start, end = [coord for coord, deg in subgraph.degree if deg == 1]
-            linestring = np.asarray(nx.shortest_path(subgraph, start, end), dtype=float)
-            smoothed = gaussian_filter1d(linestring, sigma=self.sigma, axis=0) * RESOLUTION['x']
+        for linestring in partition_forest(g):
+            smoothed = gaussian_filter1d(np.asarray(linestring, dtype=float), sigma=self.sigma, axis=0) * RESOLUTION['x']
             length += np.linalg.norm(np.diff(smoothed, axis=0), axis=1).sum()
 
         return length
@@ -240,4 +262,5 @@ class ContortedSheetAreaCalculator(LinearAreaCalculator):
         raise NotImplementedError()
 
 
-DefaultAreaCalculator = LinearAreaCalculator
+# DefaultAreaCalculator = LinearAreaCalculator
+DefaultAreaCalculator = GaussianSmoothedAreaCalculator

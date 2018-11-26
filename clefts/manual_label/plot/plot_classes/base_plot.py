@@ -54,6 +54,7 @@ class BasePlot(metaclass=ABCMeta):
             fig.savefig(os.path.join(directory, fname))
         if show:
             plt.show()
+        plt.close(fig)
 
     def _fig_ax(
         self, fig_ax_arr=None, nrows=1, ncols=1, **kwargs

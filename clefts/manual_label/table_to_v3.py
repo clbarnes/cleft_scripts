@@ -35,7 +35,7 @@ def insert_skeletons(skeleton_path, new_path):
 
 
 def main():
-    logger.info("Starting conversion of v1 and v2 make_tables to v3")
+    logger.info("Starting conversion of v1 and v2 tables to v3")
     for dirpath in [ORN_PN_DIR, CHO_BASIN_DIR]:
         old_table = dirpath / "table_noskel.hdf5"
         new_table = dirpath / "table.hdf5"

@@ -118,13 +118,16 @@ def conn_areas_to_hdf5(df, skeletons_path, out_path):
         table.to_hdf(out_path, key="skeletons/" + key)
 
 
-def main(circuit=Circuit.LN_BASIN):
+def main(*circuits):
+    if not circuits:
+        circuits = [Circuit.LN_BASIN, Circuit.BROAD_PN]
     logger.info("Starting area calculation for v3")
+    for circuit in circuits:
+        logger.info("Calculating area from %s", circuit)
+        d = DATA_DIRS[circuit]
 
-    d = DATA_DIRS[circuit]
-
-    df = conn_areas_from_dir(d)
-    conn_areas_to_hdf5(df, d / "skeletons.json", d / "table.hdf5")
+        df = conn_areas_from_dir(d)
+        conn_areas_to_hdf5(df, d / "skeletons.json", d / "table.hdf5")
 
 
 if __name__ == "__main__":

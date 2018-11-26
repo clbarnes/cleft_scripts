@@ -50,7 +50,7 @@ class Dataset:
     CLEFTS = "/volumes/labels/clefts"
     PARTNERS = "/annotations/presynaptic_site/partners"
     RAW = "/volumes/raw"
-    CONN_TABLE = "/make_tables/connectors"
+    CONN_TABLE = "/tables/connectors"
     # "/annotations/ids"
     # "/annotations/comments/target_ids"
     # "/complete_segments"

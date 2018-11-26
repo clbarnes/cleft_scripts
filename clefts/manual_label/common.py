@@ -1,12 +1,18 @@
 import networkx as nx
 import os
-from typing import NamedTuple, Tuple
+from typing import NamedTuple, Tuple, Iterator, Dict, Any
+import logging
 
 import pandas as pd
 import numpy as np
 
+from clefts.manual_label.skeleton import CircuitNode
 from clefts.manual_label.constants import TABLE_FNAME, DFS_KEYS, Circuit, DATA_DIRS
-from clefts.manual_label.plot_utils import hdf5_to_multidigraph, merge_multi
+from clefts.manual_label.plot_utils import hdf5_to_multidigraph, merge_multi, multidigraph_to_digraph
+from clefts.common import StrEnum
+
+
+logger = logging.getLogger(__name__)
 
 
 class ROI:
@@ -129,3 +135,107 @@ def get_data(circuit: Circuit) -> nx.MultiDiGraph:
 
 def get_merged_all() -> nx.MultiDiGraph:
     return merge_multi(*(get_data(circuit) for circuit in list(Circuit)))
+
+
+def iter_data(g: nx.Graph) -> Iterator[Tuple[CircuitNode, CircuitNode, Dict[str, Any]]]:
+    ndata = dict(g.nodes(data=True))
+    for pre, post, edata in g.edges(data=True):
+        yield ndata[pre]["obj"], ndata[post]["obj"], edata
+
+
+def sanitise_row(row):
+    """Convert StrEnums to str"""
+    return [str(item) if isinstance(item, StrEnum) else item for item in row]
+
+
+def synapses_as_df(*circuits: Circuit, sanitise=False) -> Tuple[pd.DataFrame, Dict[Circuit, pd.DataFrame]]:
+    """
+    circuit, pre_id, pre_name, pre_side, pre_segment, post_id, post_name, post_side, post_segment, connector_id, synaptic_area
+
+    :param circuits:
+    :return:
+    """
+    if not circuits:
+        circuits = sorted(Circuit, key=str)
+
+    headers = (
+        "circuit",
+        "pre_id", "pre_name", "pre_side", "pre_segment",
+        "post_id", "post_name", "post_side", "post_segment",
+        "connector_id",
+        "synaptic_area"
+    )
+
+    all_data = []
+    per_circuit = dict()
+
+    for circuit in circuits:
+        g = get_data(circuit)
+        rows = []
+        total_count = 0
+
+        for pre, post, edata in iter_data(g):
+            row = [circuit]
+            for node in (pre, post):
+                row.extend([node.id, node.name, node.side, node.segment])
+            row.append(edata["conn_id"])
+            row.append(edata["area"])
+            assert len(row) == len(headers)
+            if sanitise:
+                row = sanitise_row(row)
+            rows.append(row)
+
+            total_count += 1
+
+        logger.info(f"Total synapse count for %s: %s", circuit, total_count)
+        rows = sorted(rows)
+        per_circuit[circuit] = pd.DataFrame(data=rows, columns=headers)
+        all_data.extend(rows)
+
+    return pd.DataFrame(data=all_data, columns=headers), per_circuit
+
+
+def edges_as_df(*circuits: Circuit, sanitise=False) -> Tuple[pd.DataFrame, Dict[Circuit, pd.DataFrame]]:
+    """
+    circuit, pre_id, pre_name, pre_side, pre_segment, post_id, post_name, post_side, post_segment, contact_number, synaptic_area
+
+    :param circuits:
+    :return:
+    """
+    if not circuits:
+        circuits = sorted(Circuit, key=lambda x: str(x).lower())
+
+    headers = (
+        "circuit",
+        "pre_id", "pre_name", "pre_side", "pre_segment",
+        "post_id", "post_name", "post_side", "post_segment",
+        "contact_number", "synaptic_area"
+    )
+
+    all_data = []
+    per_circuit = dict()
+
+    for circuit in circuits:
+        g = multidigraph_to_digraph(get_data(circuit))
+        rows = []
+        total_count = 0
+
+        for pre, post, edata in iter_data(g):
+            row = [circuit]
+            for node in (pre, post):
+                row.extend([node.id, node.name, node.side, node.segment])
+            row.append(edata["count"])
+            row.append(edata["area"])
+            assert len(row) == len(headers)
+            if sanitise:
+                row = sanitise_row(row)
+            rows.append(row)
+
+            total_count += edata["count"]
+
+        logger.info(f"Total synapse count for %s: %s", circuit, total_count)
+        rows = sorted(rows)
+        per_circuit[circuit] = pd.DataFrame(data=rows, columns=headers)
+        all_data.extend(rows)
+
+    return pd.DataFrame(data=all_data, columns=headers), per_circuit

@@ -402,7 +402,7 @@ def plot_area_histogram(multigraph, path=None, show=True, fig_ax=None, name=None
 
 
 def dir_to_multidigraph(hdf5_dir):
-    logger.debug("Generating multidigraph from make_tables")
+    logger.debug("Generating multidigraph from tables")
     g_multi = nx.MultiDiGraph()
 
     skel_df, conn_df, _ = dfs_from_dir(hdf5_dir)
