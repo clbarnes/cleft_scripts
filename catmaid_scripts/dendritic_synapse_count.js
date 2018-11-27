@@ -18,15 +18,20 @@ function countDendriticSynapses(sk) {
             });
         return o;
     }, {pre: 0, post: 0});
-};
+}
 
 var w = CATMAID.WebGLApplication.prototype.getInstances()[0];
 
 var sks = w.space.content.skeletons;
 
-Object.keys(sks).forEach(function(skid) {
-    var counts = countDendriticSynapses(sks[skid]);
-    var getName = CATMAID.NeuronNameService.getInstance().getName;
-    console.log(getName(skid), "postsynaptic:", counts.post);
-});
+let rows = [["skeleton_id", "pre_count", "post_count"]];
+for (let skid of Object.keys(sks)) {
+    const counts = countDendriticSynapses(sks[skid]);
+    rows.push([Number(skid), counts.pre, counts.post]);
+}
 
+saveAs(
+  new Blob([rows.map(row => row.join(",")).join("\n")]),
+  {type: "text/plain"},
+  "dendritic_synapse_counts.csv"
+);

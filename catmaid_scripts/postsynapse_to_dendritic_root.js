@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// See https://github.com/acardona/scripts/blob/dev/javascript/catmaid/distances_from_dendritic_node_with_postsynaptic_site_to_root_of_dendritic_arbor_as_CSV.js
+// adapted from https://github.com/acardona/scripts/blob/dev/javascript/catmaid/distances_from_dendritic_node_with_postsynaptic_site_to_root_of_dendritic_arbor_as_CSV.js
 
 // Compute distances from each dendritic node with a postsynatic site
 // to the root of the dendritic arbor, here defined as the dendritic node 
@@ -8,17 +8,20 @@
 
 // ASSUMES axon and dendrite coloring mode, so that the "axon" variable exists.
 
-// Exports measurements as one CSV file for each arbor in the 3D viewer.
+// Exports measurements as one CSV file.
+
+
+let GAUSSIAN_SIGMA = 200;
 
 
 var w = CATMAID.WebGLApplication.prototype.getInstances()[0];
 var sks = w.space.content.skeletons;
 
-
-Object.keys(sks).forEach(function(skid) {
+let rows = [["skeleton_id", "node_id", "connector_id", "distance_to_dendritic_root"]];
+for (let skid of Object.keys(sks)) {
   var sk = sks[skid];
   var arbor = sk.createArbor();
-  var smooth_positions = arbor.smoothPositions(sk.getPositions(), 200); // sigma of 200 n
+  var smooth_positions = arbor.smoothPositions(sk.getPositions(), GAUSSIAN_SIGMA); // sigma of 200 n
   var distanceFn = (function(child, paren) {
      return this[child].distanceTo(this[paren]);
   }).bind(smooth_positions);
@@ -53,18 +56,17 @@ Object.keys(sks).forEach(function(skid) {
     return o;
   }, {});
 
-  // Export CSV file
-  var name = CATMAID.NeuronNameService.getInstance().getName(skid) + "-" + skid;
-  var rows = [["skid", "nodeID", "connectorID", "distance_to_dendritic_root"].join(",")];
-
   Object.keys(synapses).forEach(function(nodeID) {
     synapses[nodeID].forEach(function(synapse) {
       if (1 === synapse.type) {
-        rows.push([skid, nodeID, synapse.connector_id, distances_to_dendritic_root[nodeID]].join(","));
+        rows.push([skid, nodeID, synapse.connector_id, distances_to_dendritic_root[nodeID]]);
       }
     });
   });
+}
 
-  saveAs(new Blob([rows.join("\n")], {type : 'text/plain'}), name + ".csv");
-});
-
+saveAs(
+  new Blob([rows.map(row => row.join(",")).join("\n")]),
+  {type: "text/plain"},
+  "dendritic_postsynapse_depths.csv"
+);
