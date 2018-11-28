@@ -1,15 +1,18 @@
+"""Convert tables output by v1 and v2 annotation schemes to v3"""
 import logging
 import pandas as pd
 
-from clefts.manual_label.constants import CHO_BASIN_DIR, ORN_PN_DIR
+from clefts.manual_label.constants import Circuit, DATA_DIRS
 from clefts.manual_label.skeleton import skeletons_to_tables
 from clefts.manual_label.v3_to_areas import id_to_skel
 
 logger = logging.getLogger(__name__)
 
-OLD_TABLE = CHO_BASIN_DIR / "table_v1.hdf5"
-NEW_TABLE = CHO_BASIN_DIR / "table.hdf5"
-SKELETONS = CHO_BASIN_DIR / "skeletons.json"
+
+RELEVANT_CIRCUITS = [
+    Circuit.CHO_BASIN,
+    # Circuit.ORN_PN,
+]
 
 
 def copy_connectors(old_path, new_path):
@@ -36,7 +39,8 @@ def insert_skeletons(skeleton_path, new_path):
 
 def main():
     logger.info("Starting conversion of v1 and v2 tables to v3")
-    for dirpath in [ORN_PN_DIR, CHO_BASIN_DIR]:
+    for circuit in RELEVANT_CIRCUITS:
+        dirpath = DATA_DIRS[circuit]
         old_table = dirpath / "table_noskel.hdf5"
         new_table = dirpath / "table.hdf5"
         skeletons = dirpath / "skeletons.json"

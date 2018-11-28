@@ -3,17 +3,18 @@ import logging
 import itertools
 from datetime import datetime
 from abc import ABCMeta, abstractmethod
-from typing import Optional, Union, Tuple
+from typing import Optional, Union, Tuple, List
 
 import numpy as np
 import networkx as nx
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
-from clefts.manual_label.constants import Circuit
+from clefts.manual_label.constants import Circuit, Drive
 from clefts.manual_label.plot.constants import USE_TEX, TOKEN_CHARS, DEFAULT_EXT
 from clefts.manual_label.plot_utils import filter_graph_nodes, filter_graph_edges
 from clefts.manual_label.skeleton import CircuitNode
+from manual_label.common import iter_data
 
 
 def tokenize(s):
@@ -29,6 +30,28 @@ class BasePlot(metaclass=ABCMeta):
         self.graph = graph
         self.name = str(name)
         self.logger.info("Creating plot object for " + self.name)
+
+    def color(self, circuit: Circuit):
+        return {
+            Circuit.BROAD_PN: "#1f77b4",
+            Circuit.ORN_PN: "#2ca02c",
+            Circuit.LN_BASIN: "#ff7f0e",
+            Circuit.CHO_BASIN: "#d62728",
+        }[circuit]
+
+    def marker(self, circuit: Circuit):
+        if circuit.drive == Drive.EXCITATORY:
+            return "^"
+        else:
+            return "s"
+
+    def cm(self, circuit: Circuit):
+        return {"marker": self.marker(circuit), "color": self.color(circuit)}
+
+    def cml(self, circuit: Circuit, linestyle: str=""):
+        d = self.cm(circuit)
+        d["linestyle"] = linestyle
+        return d
 
     def get_title(self, title=None):
         return title or self.title_base + (f" ({self.name})" if self.name else "")
@@ -112,10 +135,19 @@ class BasePlot(metaclass=ABCMeta):
     def objs_from_ids(self, *ids):
         return [self.obj_from_id(obj_id) for obj_id in ids]
 
-    def get_edge_pairs(self):
+    def get_edge_pairs(self) -> Tuple[
+        List[Tuple[Tuple[int, int], Tuple[int, int]]],
+        List[Tuple[int, int]]
+    ]:
+        """Returns list of left-right edge pairs, and list of unpaired edges"""
         done = set()
         pairs = []
-        for pre, post, data in self.graph.edges(data=True):
+        non_pairs = set()
+        # id_to_skel = {nid: data["obj"] for nid, data in self.graph.nodes(data=True)}
+        for pre_skel, post_skel, edata in iter_data(self.graph):
+            pre = pre_skel.id
+            post = post_skel.id
+
             key = (pre, post)
             if key in done:
                 continue
@@ -128,13 +160,18 @@ class BasePlot(metaclass=ABCMeta):
                 if self.graph.has_edge(*other_key)
             ]
             if len(other_keys) == 0:
+                non_pairs.add(key)
                 continue
             elif len(other_keys) > 1:
-                msg = f"More than one mirror candidate for edge {self.obj_from_id(pre)} -> {self.obj_from_id(post)}:\n"
-                msg += "\n".join("\t{0} -> {1}".format(*ok) for ok in other_keys)
-                raise ValueError(msg)
+                # msg = f"Skipping: more than one mirror candidate for edge {self.obj_from_id(pre)} -> {self.obj_from_id(post)}:\n"
+                # msg += "\n".join("\t{0} -> {1}".format(*ok) for ok in other_keys)
+                # self.logger.info(msg)
+                non_pairs.add(key)
+                non_pairs.update(other_keys)
+                continue
 
+            # todo: consider sorting on side
             pairs.append(tuple(sorted([key, other_keys[0]])))
             done.update(pairs[-1])
 
-        return sorted(pairs)
+        return sorted(pairs), sorted(non_pairs)

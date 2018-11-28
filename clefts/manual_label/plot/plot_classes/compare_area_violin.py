@@ -12,7 +12,7 @@ from scipy import stats
 
 from clefts.manual_label.plot.plot_classes.base_plot import BasePlot
 from clefts.manual_label.plot.constants import USE_TEX, DEFAULT_EXT
-
+from manual_label.constants import Circuit
 
 BETA_PARAM = 10
 
@@ -165,7 +165,7 @@ class CompareAreaViolinPlot(BasePlot):
             combined.append(data["area"])
 
         # todo: log this?
-        sorted_circuits = sorted(areas_by_circuit)
+        sorted_circuits = Circuit.sort(areas_by_circuit)
         dataset = [sorted(areas_by_circuit[key]) for key in sorted_circuits] + [
             combined
         ]

@@ -6,9 +6,6 @@ import matplotlib
 from clefts.constants import PACKAGE_ROOT
 from clefts.dist_fit import NormalVsLognormal
 from clefts.manual_label.common import get_data, get_merged_all
-from clefts.manual_label.plot.plot_classes.compare_area_violin import (
-    CompareAreaViolinPlot,
-)
 
 matplotlib.rcParams["text.usetex"] = True  # noqa
 
@@ -27,22 +24,30 @@ from clefts.manual_label.plot.plot_classes import (
     ContactNumberHeatMap,
     SynapticAreaHeatMap,
     NormalisedDiffHeatMap,
+    CompareAreaViolinPlot,
+    DepthVsAreaPlot
 )
 from clefts.manual_label.plot_utils import (
-    contract_skeletons_multi,
     merge_multi,
 )
 
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
-plot_classes = [
+circuit_plot_classes = [
     LeftRightBiasPlot,
     CountVsAreaPlot,
+    FracVsAreaPlot,
     AreaHistogramPlot,
     ContactNumberHeatMap,
     SynapticAreaHeatMap,
     NormalisedDiffHeatMap,
+]
+
+combined_plot_classes = [
+    # CompareAreaViolinPlot,
+    # DepthVsAreaPlot,
+    ExcitationInhibitionPlot,
 ]
 
 
@@ -69,41 +74,41 @@ def get_merged_basin():
 def all_plots_for_system(circuit: Circuit, **kwargs):
     logger.info("creating plots for " + str(circuit))
     multi_g = get_data(circuit)
-    for plot_class in plot_classes:
+    for plot_class in circuit_plot_classes:
         plot_obj = plot_class(multi_g, circuit)
         plot_obj.plot(**kwargs)
 
 
-def cho_basin_plots(**kwargs):
-    """N.B. collapse identical chos"""
-    logger.info("Creating cho_basin plots")
-    multi_g = get_data(Circuit.CHO_BASIN)
-
-    to_contract = set()
-    for skid, data in multi_g.nodes(data=True):
-        skel = data["obj"]
-        to_contract.add(
-            frozenset(skel.find_copies(multi_g.graph["skeletons"]) + [skel])
-        )
-    multi_g = contract_skeletons_multi(multi_g, to_contract)
-
-    for plot_class in plot_classes:
-        plot_obj = plot_class(multi_g, Circuit.CHO_BASIN)
-        plot_obj.plot(**kwargs)
-
-    dendritic_posts = {
-        "A09b a1l Basin-1": 369,
-        "A09c a1l Basin-4": 206,
-        "A09a a1l Basin-2": 305,
-        "A09a a1r Basin-2": 343,
-        "A09g a1r Basin-3": 253,
-        "A09b a1r Basin-1": 400,
-        "A09c a1r Basin-4": 202,
-        "A09g a1l Basin-3": 171,
-    }
-
-    plot_obj = FracVsAreaPlot(multi_g, dendritic_posts, Circuit.CHO_BASIN)
-    plot_obj.plot(**kwargs)
+# def cho_basin_plots(**kwargs):
+#     """N.B. collapse identical chos"""
+#     logger.info("Creating cho_basin plots")
+#     multi_g = get_data(Circuit.CHO_BASIN)
+#
+#     to_contract = set()
+#     for skid, data in multi_g.nodes(data=True):
+#         skel = data["obj"]
+#         to_contract.add(
+#             frozenset(skel.find_copies(multi_g.graph["skeletons"]) + [skel])
+#         )
+#     multi_g = contract_skeletons_multi(multi_g, to_contract)
+#
+#     for plot_class in circuit_plot_classes:
+#         plot_obj = plot_class(multi_g, Circuit.CHO_BASIN)
+#         plot_obj.plot(**kwargs)
+#     #
+#     # dendritic_posts = {
+#     #     "A09b a1l Basin-1": 369,
+#     #     "A09c a1l Basin-4": 206,
+#     #     "A09a a1l Basin-2": 305,
+#     #     "A09a a1r Basin-2": 343,
+#     #     "A09g a1r Basin-3": 253,
+#     #     "A09b a1r Basin-1": 400,
+#     #     "A09c a1r Basin-4": 202,
+#     #     "A09g a1l Basin-3": 171,
+#     # }
+#     #
+#     # plot_obj = FracVsAreaPlot(multi_g, dendritic_posts, Circuit.CHO_BASIN)
+#     # plot_obj.plot(**kwargs)
 
 
 def ln_cho_basin_plot(**kwargs):
@@ -125,10 +130,11 @@ def broad_pn_plots(**kwargs):
     all_plots_for_system(Circuit.BROAD_PN, **kwargs)
 
 
-def compare_syn_area(**kwargs):
+def combined_plots(**kwargs):
     g = get_merged_all()
-    plot = CompareAreaViolinPlot(g, "Combined")
-    plot.plot(**kwargs)
+    for cls in combined_plot_classes:
+        plot = cls(g, "Combined")
+        plot.plot(**kwargs)
 
 
 def syn_area_distribution():
@@ -149,11 +155,14 @@ if __name__ == "__main__":
         "ext": "svg",
         "show": False,
     }
-    orn_pn_plots(**kwargs)
-    ln_basin_plots(**kwargs)
-    cho_basin_plots(**kwargs)
-    broad_pn_plots(**kwargs)
+
+    circuits = list(Circuit)
+    # circuits = [Circuit.CHO_BASIN]
+
+    for circuit in circuits:
+        all_plots_for_system(circuit, **kwargs)
+
     ln_cho_basin_plot(**kwargs)
-    compare_syn_area(**kwargs)
+    combined_plots(**kwargs)
 
     syn_area_distribution()

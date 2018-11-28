@@ -179,3 +179,7 @@ class StrEnum(Enum):
             raise TypeError(f"Cannot compare {type(self)} with {type(other)}")
 
         return (self.value, self.name) < cmp
+
+    @classmethod
+    def sort(cls, others):
+        return [e for e in cls if e in others]

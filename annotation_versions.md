@@ -48,5 +48,5 @@ Reasons for deprecation:
         - `skeletons` group contains ID, name, side, segment
         - `classes` group contains one-hot encoded neuron classes
         - `superclasses` group contains one-hot encoded superclasses
-        - `annoations` group contains one-hot encoded annotations
-- Used in `LN-basin`
+        - `annotations` group contains one-hot encoded annotations
+- Used in `LN-basin`, `broad-PN`

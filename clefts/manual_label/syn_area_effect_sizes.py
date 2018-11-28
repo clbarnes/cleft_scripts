@@ -3,6 +3,7 @@ from itertools import permutations
 
 from clefts.manual_label.common import get_merged_all
 from clefts.manual_label.effect_size import CohensD, cliffs_delta, bootstrap_effect_size
+from manual_label.constants import Circuit
 
 graph = get_merged_all()
 
@@ -11,7 +12,7 @@ for src, tgt, data in graph.edges(data=True):
     areas_per_system[data["circuit"]].append(data["area"])
 
 
-sorted_circuits = sorted(areas_per_system)
+sorted_circuits = Circuit.sort(areas_per_system)
 
 effect_sizes = dict()
 

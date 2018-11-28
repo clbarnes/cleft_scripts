@@ -150,9 +150,7 @@ class CircuitNode(metaclass=ABCMeta):
         self.id = int(skid)
         self.side = Side.from_str(side)
         self.segment = Segment.from_str(segment)
-        self.classes = (
-            frozenset(item.lower() for item in classes) if classes else frozenset()
-        )
+        self.classes = frozenset(item.lower() for item in classes) if classes else frozenset()
         self.superclasses = (
             frozenset(item.lower() for item in superclasses)
             if superclasses
@@ -287,8 +285,11 @@ class Crossing(StrEnum):
 
 
 class Skeleton(CircuitNode):
-    def __str__(self):
-        return self._name
+    # def __str__(self):
+    #     return self.name
+
+    def __repr__(self):
+        return f"<Skeleton {self.id} ({self.name})>"
 
     def __hash__(self):
         return hash(self.id)
@@ -428,19 +429,22 @@ class Skeleton(CircuitNode):
 
     @classmethod
     def _from_cho_name(cls, skid, name, annotations=None, **kwargs):
-        name, seg_side = name.split()
+        class_, seg_side = name.split()
         seg = Segment.from_str(seg_side[:-1])
         side = Side.from_str(seg_side[-1])
 
-        classes = [name]
+        classes = [class_]
         superclasses = ["chordotonal"]
-        if "'" in name:
-            superclasses.append(name[:4])
+        if "'" in class_:
+            superclasses.append(class_[:4])
         else:
-            superclasses.append(name[:3])
+            superclasses.append(class_[:3])
 
-        if "-" in name:
-            superclasses.append(name.split("-")[0])
+        if "-" in class_:
+            superclasses.append(class_.split("-")[0])
+
+        if '/' in name:
+            name += f" ({skid})"
 
         return cls(skid, name, side, seg, classes, superclasses, annotations)
 

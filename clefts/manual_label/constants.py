@@ -1,3 +1,4 @@
+from enum import IntEnum
 from pathlib import Path
 from string import ascii_lowercase
 
@@ -7,11 +8,47 @@ from clefts.common import StrEnum
 from clefts.constants import RESOLUTION, PACKAGE_ROOT
 
 
+class Drive(IntEnum):
+    EXCITATORY = 1
+    INHIBITORY = -1
+
+
+class NeuronClass(StrEnum):
+    BROAD = "broad"
+    ORN = "ORN"
+    PN = "PN"
+    LN = "LN"
+    CHO = "cho"
+    BASIN = "Basin"
+
+
 class Circuit(StrEnum):
+    BROAD_PN = "broad-PN"
     ORN_PN = "ORN-PN"
     LN_BASIN = "LN-Basin"
     CHO_BASIN = "cho-Basin"
-    BROAD_PN = "broad-PN"
+
+    @property
+    def source_target(self):
+        return tuple(NeuronClass(s) for s in str(self).split('-'))
+
+    @property
+    def source(self):
+        return self.source_target[0]
+
+    @property
+    def target(self):
+        return self.source_target[1]
+
+    @property
+    def drive(self) -> Drive:
+        cls = type(self)
+        return {
+            cls.ORN_PN: Drive.EXCITATORY,
+            cls.LN_BASIN: Drive.INHIBITORY,
+            cls.CHO_BASIN: Drive.EXCITATORY,
+            cls.BROAD_PN: Drive.INHIBITORY,
+        }[self]
 
     def annotation(self):
         return "clb_" + str(self)
@@ -56,3 +93,4 @@ PX_AREA = (
 )
 
 TABLES_DIR = PACKAGE_ROOT / "manual_label" / "make_tables"
+CATMAID_CSV_DIR = PACKAGE_ROOT / "manual_label" / "data"

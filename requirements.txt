@@ -6,7 +6,7 @@ networkx
 scipy
 smalldataviewer
 matplotlib
-catpy
+git+git://github.com/catmaid/catpy.git@neuronname
 coordinates
 git+git://github.com/clbarnes/cremi_python.git@n5
 ipython

@@ -21,6 +21,8 @@ class CountVsAreaPlot(BasePlot):
     title_base = "Synaptic area vs. contact number"
     xlabel = "syn. count"
 
+    x_key = "count"
+
     def __init__(self, graph: nx.MultiDiGraph, name=""):
         super().__init__(graph, name)
         self.graph = multidigraph_to_digraph(self.graph)
@@ -36,18 +38,18 @@ class CountVsAreaPlot(BasePlot):
     ):
         logger.debug("Plotting count vs area")
 
-        edge_pairs = self.get_edge_pairs()
-        paired_edge_set = set(chain.from_iterable(edge_pairs))
-        unpaired_edges = []
+        edge_pairs, unpaired_edges = self.get_edge_pairs()
+        # paired_edge_set = set(chain.from_iterable(edge_pairs))
+        # unpaired_edges = []
 
         counts = dict()
         areas = dict()
         names = dict()
         for pre, post, data in self.graph.edges(data=True):
             key = (pre, post)
-            if key not in paired_edge_set:
-                unpaired_edges.append(key)
-            counts[key] = data["count"]
+            # if key not in paired_edge_set:
+            #     unpaired_edges.append(key)
+            counts[key] = data[self.x_key]
             areas[key] = data["area"]
             names[key] = edge_name(self.obj_from_id(pre), self.obj_from_id(post))
 

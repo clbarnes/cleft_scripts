@@ -4,6 +4,7 @@ import networkx as nx
 from typing import Callable, Iterable
 from copy import deepcopy
 
+from clefts.manual_label.constants import CATMAID_CSV_DIR
 from clefts.manual_label.skeleton import Skeleton, Crossing, SkeletonGroup, CircuitNode
 
 logger = logging.getLogger(__name__)
@@ -40,12 +41,41 @@ def hdf5_to_multidigraph(path, circuit=None):
     g = nx.MultiDiGraph()
     g.graph["skeletons"] = set()
 
+    post_depth_df = pd.read_csv(
+        CATMAID_CSV_DIR / "dendritic_postsynapse_depths.csv",
+        index_col=[2, 1]  # node_id, connector_id
+    )
+    dend_syn_count_df = pd.read_csv(
+        CATMAID_CSV_DIR / "dendritic_synapse_counts.csv",
+        index_col=0
+    )
+
     for skel in Skeleton.from_hdf5(path, "skeletons"):
-        g.add_node(skel.id, skeleton=skel, skeleton_group=None, obj=skel)
+        try:
+            syn_count_row = dend_syn_count_df.loc[skel.id]
+            pre = syn_count_row["pre_count"]
+            post = syn_count_row["post_count"]
+        except KeyError:
+            pre = None
+            post = None
+
+        g.add_node(
+            skel.id, skeleton=skel, skeleton_group=None, obj=skel,
+            dendritic_post_count=post, dendritic_pre_count=pre
+        )
         g.graph["skeletons"].add(skel)
 
     for row in connectors.itertuples(index=False):
         d = row._asdict()
+        try:
+            post_depth_row = post_depth_df.loc[(row.conn_id, row.post_tnid)]
+            d["dendritic_depth_post"] = post_depth_row["distance_to_dendritic_root"]
+        except KeyError:
+            d["dendritic_depth_post"] = None
+
+        post_count = g.node[row.post_skid]["dendritic_post_count"]
+        d["post_fraction"] = None if post_count is None else 1/post_count
+
         d["circuit"] = circuit
         crossing = Crossing.from_skeletons(
             g.node[row.pre_skid]["skeleton"], g.node[row.post_skid]["skeleton"]
@@ -69,20 +99,19 @@ def multidigraph_to_digraph(g_multi):
                 area=0,
                 count=0,
                 edges=[],
+                dendritic_depth_posts=[],
                 crossing=m_data.get("crossing"),
-                drive=m_data.get("drive", 0),
-                systems=set(),
+                circuit=m_data["circuit"],
+                post_fraction=0
             )
 
         s_data = g_single.edges[pre_skid, post_skid]
         s_data["area"] += m_data["area"]
         s_data["count"] += 1
         s_data["edges"].append(deepcopy(m_data))
-        s_data["systems"].add(m_data.get("system"))
-        if s_data["drive"] != m_data.get(
-            "drive"
-        ):  # either everything has drive, or nothing does
-            s_data["drive"] = 0
+        assert s_data["circuit"] == m_data["circuit"], "Edges between same node should be in the same system"
+        s_data["post_fraction"] += m_data["post_fraction"]
+        s_data["dendritic_depth_posts"].append(m_data["dendritic_depth_post"])
 
     return g_single
 
@@ -173,16 +202,18 @@ def contract_skeletons_single(
         if not (pre_id, post_id) in g_single.edges:
             g.add_edge(pre_id, post_id, area=0, count=0, edges=[])
 
-        g.edges[pre_id, post_id]["area"] += data["area"]
-        g.edges[pre_id, post_id]["count"] += data["count"]
-        g.edges[pre_id, post_id]["edges"].append(deepcopy(data["edges"]))
+        edata = g.edges[pre_id, post_id]
+        edata["area"] += data["area"]
+        edata["count"] += data["count"]
+        edata["edges"].append(deepcopy(data["edges"]))
+        edata["post_fraction"] += edata["post_fraction"]  # todo
         crossings = [
             Crossing.from_sides(g.node[pre_id]["obj"].side, g.node[post_id]["obj"].side)
         ]
-        existing_crossing = g_single.edges[pre_id, post_id].get("crossing")
+        existing_crossing = edata.get("crossing")
         if existing_crossing:
             crossings.append(existing_crossing)
-        g.edges[pre_id, post_id]["crossing"] = Crossing.from_group(
+        edata["crossing"] = Crossing.from_group(
             *crossings, ignore_none=True
         )
 
