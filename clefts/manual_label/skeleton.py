@@ -14,7 +14,7 @@ from json import JSONDecodeError
 from typing import Iterable, Dict, Optional
 from pathlib import Path
 
-from clefts.common import StrEnum
+from clefts.common import CustomStrEnum
 from clefts.manual_label.plot.constants import USE_TEX
 
 
@@ -28,7 +28,7 @@ def hdf_join(path, *args):
 
 
 @functools.total_ordering
-class Side(StrEnum):
+class Side(CustomStrEnum):
     RIGHT = "r"
     LEFT = "l"
     R = "r"
@@ -81,7 +81,7 @@ class Side(StrEnum):
 
 
 @functools.total_ordering
-class Segment(StrEnum):
+class Segment(CustomStrEnum):
     UNDEFINED = ""
     T1 = "t1"
     T2 = "t2"
@@ -227,7 +227,7 @@ class CircuitNode(metaclass=ABCMeta):
 
 
 @functools.total_ordering
-class Crossing(StrEnum):
+class Crossing(CustomStrEnum):
     UNDEFINED = ""
     IPSI = "ipsi"
     IPSILATERAL = "ipsi"

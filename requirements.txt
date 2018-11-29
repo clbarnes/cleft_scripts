@@ -14,3 +14,4 @@ bootstrapped
 psycopg2
 scikit-image
 lmfit
+enum34-custom

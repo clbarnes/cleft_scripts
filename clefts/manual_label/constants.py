@@ -4,7 +4,7 @@ from string import ascii_lowercase
 
 import numpy as np
 
-from clefts.common import StrEnum
+from clefts.common import CustomStrEnum
 from clefts.constants import RESOLUTION, PACKAGE_ROOT
 
 
@@ -13,7 +13,7 @@ class Drive(IntEnum):
     INHIBITORY = -1
 
 
-class NeuronClass(StrEnum):
+class NeuronClass(CustomStrEnum):
     BROAD = "broad"
     ORN = "ORN"
     PN = "PN"
@@ -22,7 +22,7 @@ class NeuronClass(StrEnum):
     BASIN = "Basin"
 
 
-class Circuit(StrEnum):
+class Circuit(CustomStrEnum):
     BROAD_PN = "broad-PN"
     ORN_PN = "ORN-PN"
     LN_BASIN = "LN-Basin"

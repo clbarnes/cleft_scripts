@@ -1,8 +1,8 @@
 import functools
 import math
 import logging
-from abc import abstractmethod
-from enum import Enum
+from enum_custom import StrEnum
+from typing import Sequence, Container, List
 
 from clefts.constants import DIMS, RESOLUTION, TRANSLATION, CoordZYX
 
@@ -162,24 +162,11 @@ def resolve_padding(padding_low=0, padding_high=None, fn=None, *args, **kwargs):
         return fn(padding_low, *args, **kwargs), fn(padding_high, *args, **kwargs)
 
 
-@functools.total_ordering
-class StrEnum(Enum):
+class CustomStrEnum(StrEnum):
     def __str__(self):
         return str(self.value)
 
-    def __bool__(self):
-        return bool(self.value)
-
-    def __lt__(self, other):
-        if isinstance(other, type(self)):
-            cmp = (other.value, other.name)
-        elif isinstance(other, str):
-            cmp = (other, "")
-        else:
-            raise TypeError(f"Cannot compare {type(self)} with {type(other)}")
-
-        return (self.value, self.name) < cmp
-
     @classmethod
-    def sort(cls, others):
+    def sort(cls, others: Container[StrEnum]) -> List[StrEnum]:
+        """Sorts by definition order"""
         return [e for e in cls if e in others]

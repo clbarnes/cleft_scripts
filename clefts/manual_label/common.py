@@ -9,7 +9,7 @@ import numpy as np
 from clefts.manual_label.skeleton import CircuitNode
 from clefts.manual_label.constants import TABLE_FNAME, DFS_KEYS, Circuit, DATA_DIRS
 from clefts.manual_label.plot_utils import hdf5_to_multidigraph, merge_multi, multidigraph_to_digraph
-from clefts.common import StrEnum
+from clefts.common import CustomStrEnum
 
 
 logger = logging.getLogger(__name__)
@@ -145,7 +145,7 @@ def iter_data(g: nx.Graph) -> Iterator[Tuple[CircuitNode, CircuitNode, Dict[str,
 
 def sanitise_row(row):
     """Convert StrEnums to str"""
-    return [str(item) if isinstance(item, StrEnum) else item for item in row]
+    return [str(item) if isinstance(item, CustomStrEnum) else item for item in row]
 
 
 def synapses_as_df(*circuits: Circuit, sanitise=False) -> Tuple[pd.DataFrame, Dict[Circuit, pd.DataFrame]]:
