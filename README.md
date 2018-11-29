@@ -1,6 +1,18 @@
-# Preparation and data surrounding L. Heinrich's synapse detection workflow
+# Scripts involved in the analysis of synaptic clefts
 
-## Utilities
+For python 3.7+
+
+Creating an environment:
+
+```bash
+conda create -n my_env python=3.7
+conda activate my_env
+conda install -c conda-forge/label/gcc7 z5py
+conda install -c conda-forge pytables
+pip install -r requirements
+```
+
+## Utilities (possibly deprecated)
 
 ### fetch_mesh
 
