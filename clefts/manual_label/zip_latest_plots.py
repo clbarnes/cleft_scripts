@@ -7,15 +7,15 @@ from datetime import datetime
 import re
 import shutil
 from pathlib import Path
-from typing import Iterator, Tuple, List, Optional
+from typing import Iterator, Tuple, List, Optional, Sequence
 import subprocess as sp
 
-from clefts.constants import PACKAGE_ROOT
+from clefts.constants import PACKAGE_ROOT, PROJECT_ROOT
 
 logger = logging.getLogger("__name__")
 
 timestamp_re = re.compile(
-    r"^(?P<prefix>.+)(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+)(?P<suffix>.*)\.\w+$"
+    r"^(?P<prefix>.+)[-_]?(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+)[-_]?(?P<suffix>.*)(?P<ext>\.\w+)$"
 )
 
 timestamp = datetime.now().isoformat()
@@ -72,21 +72,61 @@ def get_latest_plots(
             yield subtract_base(src_dir, root), out_files
 
 
+def strip_timestamp(fname):
+    match = timestamp_re.search(fname)
+    assert match, f"Filename does not match regex: {fname}"
+    basename = f'{match.group("prefix")}_{match.group("suffix")}'
+    basename = basename.rstrip("_")
+    return basename + match.group("ext")
+
+
+def purge_dir(tgt_dir, extensions) -> Tuple[List[Path], List[Path]]:
+    if not extensions:
+        return [], []
+
+    removed_files = []
+    removed_dirs = []
+
+    for root, dirnames, filenames in os.walk(tgt_dir, topdown=False):
+
+        for fname in filenames:
+            if any(fname.endswith(ext) for ext in extensions):
+                fpath = Path(os.path.join(root, fname))
+                removed_files.append(fpath)
+                os.remove(fpath)
+
+        for dname in dirnames:
+            try:
+                dpath = Path(os.path.join(root, dname))
+                os.rmdir(dpath)
+                removed_dirs.append(dpath)
+            except OSError:
+                pass
+
+    return removed_files, removed_dirs
+
+
 def copy_latest_plots(
-    src: os.PathLike, tgt: os.PathLike, archive_ext: Optional[str] = DEFAULT_ARCHIVE
+    src: os.PathLike, tgt: os.PathLike, archive_ext: Optional[str] = DEFAULT_ARCHIVE,
+    keep_timestamp=True, purge_tgts: Optional[Sequence[str]]=None,
+    ignore_globs=IGNORE_GLOBS
 ):
     """"""
     assert src != tgt, "src and tgt are the same"
     src = Path(src)
     tgt = Path(tgt)
 
-    for root, fnames in get_latest_plots(src):
+    if purge_tgts:
+        purge_dir(tgt, purge_tgts)
+
+    for root, fnames in get_latest_plots(src, ignore_globs):
         src_dir = src / root
         tgt_dir = tgt / root
         tgt_dir.mkdir(exist_ok=True, parents=True)
-        for fname in fnames:
-            logging.debug("Copying %s to %s", src_dir / fname, tgt_dir / fname)
-            shutil.copy2(src_dir / fname, tgt_dir / fname)
+        for srcname in fnames:
+            tgtname = srcname if keep_timestamp else strip_timestamp(srcname)
+            logging.debug("Copying %s to %s", src_dir / srcname, tgt_dir / tgtname)
+            shutil.copy2(src_dir / srcname, tgt_dir / tgtname)
 
     if not archive_ext:
         return
@@ -106,6 +146,16 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     local_root = PACKAGE_ROOT / "manual_label"
     src = local_root / "figs"
-    tgt = local_root / f"latest_plots_{timestamp}"
 
-    copy_latest_plots(src, tgt)
+    # copy in this directory
+    local_tgt = local_root / f"latest_plots_{timestamp}"
+    assert not local_tgt.is_dir()
+    copy_latest_plots(src, local_tgt, '.zip')
+
+    # copy to paper dir
+    paper_tgt = PROJECT_ROOT.parent / "synapse-area" / "raw-plots"
+    assert paper_tgt.is_dir()
+    copy_latest_plots(
+        src, paper_tgt, '.zip',
+        keep_timestamp=False, purge_tgts=[".svg", ".pdf"], ignore_globs=[".gitignore", "*.pdf"]
+    )
