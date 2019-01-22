@@ -1,19 +1,22 @@
 import itertools
 from collections import defaultdict
+from enum import Enum
+from typing import List, Tuple, Callable, Optional
+from warnings import warn
 
 import networkx as nx
 import numpy as np
-from enum import Enum
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from typing import List, Tuple
-from warnings import warn
+from matplotlib.cm import get_cmap
+import pandas as pd
 
 from clefts.manual_label.plot.constants import USE_TEX, DEFAULT_EXT
 from clefts.manual_label.plot.plot_classes.base_plot import BasePlot
 from clefts.manual_label.plot_utils import multidigraph_to_digraph
 from clefts.manual_label.skeleton import CircuitNode
+from manual_label.constants import CATMAID_CSV_DIR
 
 
 class CellLabels(Enum):
@@ -22,7 +25,7 @@ class CellLabels(Enum):
     NONE = 3
 
 
-DEFAULT_CMAP = "summer"
+DEFAULT_CMAP = "summer_r"
 DEFAULT_CELL_LABELS = CellLabels.NONE
 
 
@@ -37,7 +40,8 @@ def label_all_cells(ax, arr):
         fmt = lambda v: v
 
     for row, col in itertools.product(*[range(i) for i in arr.shape]):
-        ax.text(col, row, fmt(arr[row, col]), ha="center", va="center", color="k")
+        if not np.ma.is_masked(arr[row, col]):
+            ax.text(col, row, fmt(arr[row, col]), ha="center", va="center", color="k")
 
 
 def label_zero_cells(ax, arr, text="n/a"):
@@ -106,8 +110,13 @@ class BaseHeatMap(BasePlot):
         super().__init__(graph, name)
         self.graph = multidigraph_to_digraph(self.graph)
 
+    def _create_cmap(self, cmap_name=DEFAULT_CMAP, mask_color='w'):
+        cmap = get_cmap(cmap_name)
+        cmap.set_bad(mask_color)
+        return cmap
+
     def get_adj_data(
-        self, attr: str, pre_nodes: List[CircuitNode], post_nodes: List[CircuitNode]
+            self, attr: str, pre_nodes: List[CircuitNode], post_nodes: List[CircuitNode]
     ) -> np.ndarray:
         recognised_attrs = ["area", "count"]
         if attr not in recognised_attrs:
@@ -127,7 +136,7 @@ class BaseHeatMap(BasePlot):
         return np.asarray(arr)
 
     def prepare_heatmap(
-        self, attr: str
+        self, attr: str, mask_fn: Optional[Callable] = None
     ) -> Tuple[np.ndarray, Tuple[List[CircuitNode], List[CircuitNode]]]:
         pre_nodes = set()
         post_nodes = set()
@@ -139,7 +148,11 @@ class BaseHeatMap(BasePlot):
         pre_nodes = sorted(pre_nodes)
         post_nodes = sorted(post_nodes)
 
-        return self.get_adj_data(attr, pre_nodes, post_nodes), (pre_nodes, post_nodes)
+        arr = self.get_adj_data(attr, pre_nodes, post_nodes)
+        if mask_fn:
+            arr = np.ma.masked_where(mask_fn(arr), arr)
+
+        return arr, (pre_nodes, post_nodes)
 
     def plot_heatmap(
         self,
@@ -149,8 +162,12 @@ class BaseHeatMap(BasePlot):
         cmap: DEFAULT_CMAP,
         cmap_bounds=None,
         cell_labels: CellLabels = DEFAULT_CELL_LABELS,
+        mask_zeros=True
     ):
-        arr, (pre_nodes, post_nodes) = self.prepare_heatmap(attr)
+        mask_fn = (lambda x: x == 0) if mask_zeros else None
+        arr, (pre_nodes, post_nodes) = self.prepare_heatmap(attr, mask_fn)
+
+        cmap = self._create_cmap(cmap)
 
         cax = draw_heatmap(
             ax,
@@ -184,7 +201,7 @@ class ContactNumberHeatMap(BaseHeatMap):
         fig, ax_arr = self._fig_ax(fig_ax_arr)
         ax = ax_arr.flatten()[0]
 
-        cax = self.plot_heatmap("count", fig, ax, "summer", None, CellLabels.ALL)
+        cax = self.plot_heatmap("count", fig, ax, DEFAULT_CMAP, None, CellLabels.ALL)
         ax.set_title(self.get_title(kwargs.get("title")))
         self._save_show(directory, show, fig, ext)
 
@@ -204,7 +221,7 @@ class SynapticAreaHeatMap(BaseHeatMap):
         fig, ax_arr = self._fig_ax(fig_ax_arr)
         ax = ax_arr.flatten()[0]
 
-        cax = self.plot_heatmap("area", fig, ax, "summer", None, CellLabels.ZEROS)
+        cax = self.plot_heatmap("area", fig, ax, DEFAULT_CMAP, None, CellLabels.ZEROS)
         fig.colorbar(cax, ax=ax)
         ax.set_title(self.get_title(kwargs.get("title")))
         self._save_show(directory, show, fig, ext)
@@ -250,3 +267,52 @@ class NormalisedDiffHeatMap(BaseHeatMap):
         fig.tight_layout()
         ax.set_title(self.get_title(kwargs.get("title")))
         self._save_show(directory, show, fig, ext)
+
+
+class DendriticFractionHeatMap(BaseHeatMap):
+    title_base = "Dendritic fraction adjacency matrix"
+
+    def _get_additional_data(self, post_skids):
+        full = pd.read_csv(CATMAID_CSV_DIR / "dendritic_synapse_counts.csv", header=0)
+        full.index = full["skeleton_id"]
+        return full.loc[list(post_skids)]["post_count"]
+
+    def plot(
+        self,
+        directory=None,
+        tex=USE_TEX,
+        show=True,
+        fig_ax_arr=None,
+        ext=DEFAULT_EXT,
+        **kwargs,
+    ):
+        counts, (pre_nodes, post_nodes) = self.prepare_heatmap("count")
+        post_counts = np.array(self._get_additional_data(n.id for n in post_nodes))
+        fractions = counts / post_counts
+        masked = np.ma.masked_where(fractions == 0, fractions)
+
+        cmap = self._create_cmap(DEFAULT_CMAP)
+
+        fig, ax_arr = self._fig_ax(fig_ax_arr)
+        ax = ax_arr.flatten()[0]
+
+        cax = draw_heatmap(
+            ax,
+            masked,
+            None,
+            [str(n) for n in pre_nodes],
+            [str(n) for n in post_nodes],
+            "Pre-synaptic partners",
+            "Post-synaptic partners",
+            cmap=cmap,
+            cmap_bounds=(0, None),
+            cell_labels=CellLabels.NONE,
+        )
+
+        fig.colorbar(cax, ax=ax)
+        ax.set_title(self.get_title(kwargs.get("title")))
+        self._save_show(directory, show, fig, ext)
+
+        fig.tight_layout()
+        return cax
+
