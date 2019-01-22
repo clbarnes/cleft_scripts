@@ -25,7 +25,8 @@ from clefts.manual_label.plot.plot_classes import (
     SynapticAreaHeatMap,
     NormalisedDiffHeatMap,
     CompareAreaViolinPlot,
-    DepthVsAreaPlot
+    DepthVsAreaPlot,
+    DendriticFractionHeatMap,
 )
 from clefts.manual_label.plot_utils import (
     merge_multi,
@@ -42,6 +43,7 @@ circuit_plot_classes = [
     ContactNumberHeatMap,
     SynapticAreaHeatMap,
     NormalisedDiffHeatMap,
+    DendriticFractionHeatMap
 ]
 
 combined_plot_classes = [
@@ -115,14 +117,22 @@ if __name__ == "__main__":
         "directory": PACKAGE_ROOT / "manual_label" / "figs",
         "ext": "svg",
         "show": False,
+        # "show": True
     }
 
     circuits = list(Circuit)
     # circuits = [Circuit.CHO_BASIN]
+    # circuits = []
+    # combined_plot_classes = [
+    #     # CompareAreaViolinPlot,
+    #     # DepthVsAreaPlot,
+    #     # ExcitationInhibitionPlot,
+    # ]
+    # circuit_plot_classes = [LeftRightBiasPlot]
 
     for circuit in circuits:
         all_plots_for_system(circuit, **kwargs)
 
     combined_plots(**kwargs)
-
-    syn_area_distribution()
+    #
+    # syn_area_distribution()
