@@ -2,8 +2,7 @@ import csv
 
 from clefts.manual_label.common import get_data
 from clefts.manual_label.constants import Circuit, TABLES_DIR
-from clefts.manual_label.plot_utils import multidigraph_to_digraph
-from clefts.manual_label.make_tables.common import iter_data
+from clefts.manual_label.make_tables.common import iter_data, write_rows
 
 
 data_dir = TABLES_DIR / "out" / "areas"
@@ -17,13 +16,6 @@ HEADERS = (
     "connector_id",
     "synaptic_area"
 )
-
-
-def write_rows(fname, data):
-    with open(data_dir / fname, 'w') as f:
-        writer = csv.writer(f)
-        writer.writerow(HEADERS)
-        writer.writerows(data)
 
 
 all_data = []
@@ -46,7 +38,7 @@ for circuit in Circuit:
 
     print(f"Total synapse count for {circuit}: {total_count}")
     rows = sorted(rows)
-    write_rows(f"{circuit}.csv", rows)
+    write_rows(data_dir / f"{circuit}.csv", rows, HEADERS)
     all_data.extend(rows)
 
-write_rows("all.csv", all_data)
+write_rows(data_dir / "all.csv", all_data, HEADERS)
