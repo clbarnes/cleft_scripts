@@ -1,6 +1,7 @@
 from collections import defaultdict
 from itertools import combinations
 from matplotlib.lines import Line2D
+from matplotlib.patches import BoxStyle
 from matplotlib.text import Text
 from typing import List, Tuple, Callable, Sequence, Optional
 from numbers import Number
@@ -37,18 +38,9 @@ def pformat(value, precision=3, use_tex=USE_TEX):
     return s
 
 
-def sort_combinations(combs, data):
-    """Ensure that each pair is sorted (smaller index first) and that the whole list is sorted to make aesthetically
-    pleasing pairwise comparisons"""
-    combs = [sorted(pair) for pair in combs]
-    sorted_idx = sorted(range(len(data)), key=lambda idx: max(data[idx]))
-    idx_to_rank = {idx: rank for rank, idx in enumerate(sorted_idx)}
-
-    def fn(pair):
-        idx1, idx2 = sorted(pair)
-        return idx2 - idx1, idx_to_rank[idx2], idx_to_rank[idx1]
-
-    return sorted(combs, key=fn)
+def required_height(pair, highest_over):
+    """Higher numbers are bad"""
+    return max((highest_over[idx], pair[1] - pair[0], -pair[0]) for idx in range(pair[0], pair[1] + 1))
 
 
 def draw_p_brackets(
@@ -89,24 +81,24 @@ def draw_p_brackets(
     p_fn = p_fn or ranksum
     centers = centers or list(range(1, len(data) + 1))
     ax = ax or plt.gca()
-    combs = combs or combinations(range(len(data)), 2)
+    combs = combs or list(combinations(range(len(data)), 2))
 
-    highest_over = dict()
+    highest_over = {idx: max(data[idx]) + bracket_offset for idx in range(0, len(data))}
 
     lines = dict()
     texts = dict()
 
-    for idx1, idx2 in sort_combinations(combs, data):
-        data1 = data[idx1]
-        data2 = data[idx2]
+    renderer = ax.figure.canvas.get_renderer()
 
-        bracket_lminy = highest_over.get(idx1, max(data[idx1])) + bracket_offset
-        bracket_rminy = highest_over.get(idx2, max(data[idx2])) + bracket_offset
+    while combs:
+        combs = sorted(combs, key=lambda pair_: required_height(pair_, highest_over), reverse=True)
+        idx1, idx2 = combs.pop()
+        intervening = list(range(idx1, idx2 + 1))
+
+        bracket_lminy = highest_over[idx1]
+        bracket_rminy = highest_over[idx2]
 
         bracket_maxy = max(bracket_lminy, bracket_rminy) + bracket_height
-
-        highest_over[idx1] = bracket_maxy
-        highest_over[idx2] = bracket_maxy
 
         bracket_x = [centers[idx1], centers[idx1], centers[idx2], centers[idx2]]
         bracket_y = [bracket_lminy, bracket_maxy, bracket_maxy, bracket_rminy]
@@ -115,20 +107,26 @@ def draw_p_brackets(
             bracket_x = bracket_x[1:-1]
             bracket_y = bracket_y[1:-1]
 
-        pstr = pformat(p_fn(data1, data2))
+        pstr = pformat(p_fn(data[idx1], data[idx2]))
 
         line = ax.plot(bracket_x, bracket_y, c="k")
         kwargs = dict(ha="center", va="bottom")
         if fs is not None:
             kwargs["fontsize"] = fs
 
-        text = ax.text(np.mean(bracket_x), bracket_maxy, pstr, **kwargs)
+        text: Text = ax.text(np.mean(bracket_x), bracket_maxy, pstr, **kwargs)
+        window_bbox = text.get_window_extent(renderer)
+        scaled_bbox = window_bbox.inverse_transformed(ax.transData)
+
+        for idx in [idx1, idx2] + intervening:
+            ymax = scaled_bbox.ymax  #if scaled_bbox.x0 < idx < scaled_bbox.x1 else bracket_maxy
+            highest_over[idx] = ymax + bracket_offset
 
         lines[(idx1, idx2)] = line
         texts[(idx1, idx2)] = text
 
     ymin, _ = ax.get_ylim()
-    ax.set_ylim(ymin, max(highest_over.values()) + 3 * bracket_offset)
+    ax.set_ylim(ymin, max(highest_over.values()))
 
     sorted_lines = []
     sorted_texts = []
