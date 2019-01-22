@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 
 from catpy import CatmaidClient
-from catpy.applications.base import CatmaidClientApplication
+from catpy.applications import CatmaidClientApplication
 from typing import List, Dict, Any
 
 from clefts.common import offset_shape_to_dicts
