@@ -2,7 +2,8 @@ from collections import defaultdict
 
 import numpy as np
 import logging
-from typing import NamedTuple, FrozenSet, Tuple, Any, Dict, Set
+from matplotlib.axes import Axes
+from typing import NamedTuple, FrozenSet, Tuple, Any, Dict, Set, Optional
 
 import networkx as nx
 import pandas as pd
@@ -11,6 +12,7 @@ from clefts.manual_label.plot_utils import multidigraph_to_digraph
 from clefts.manual_label.plot.constants import USE_TEX, DEFAULT_EXT
 from clefts.manual_label.skeleton import SkeletonGroup, edge_name, Side, Segment, Skeleton, CircuitNode
 from manual_label.common import iter_data
+from manual_label.plot.stats_utils import violin_scatter
 from .base_plot import BasePlot
 
 logger = logging.getLogger(__name__)
@@ -68,6 +70,30 @@ def sides_data_to_row(d: Dict[Side, Dict[str, Any]]) -> Tuple[str, float, float]
         raise ValueError("Unilateral edge")
 
     return side_data_to_name(d), get_bias(d, "count"), get_bias(d, "area")
+
+
+def add_violins(
+        ax: Axes, dataset,
+        violin_scatter_kwargs: Optional[Dict[str, Any]] = None,
+        violinplot_kwargs: Optional[Dict[str, Any]] = None,
+        scatter_kwargs: Optional[Dict[str, Any]] = None,
+):
+    violin_scatter_kwargs = violin_scatter_kwargs or dict()
+    violinplot_kwargs = violinplot_kwargs or dict()
+    scatter_kwargs = scatter_kwargs or dict()
+    violins = []
+    scatters = []
+    for x, data in enumerate(dataset, 1):
+        vdata, vx = [data], [x]
+        seed = violin_scatter_kwargs.get("seed")
+        if seed:
+            violin_scatter_kwargs["seed"] = seed + x - 1
+        scatterx, scattery = violin_scatter(vdata, **violin_scatter_kwargs)
+        scatterx = scatterx - 1 + x
+        violins.append(ax.violinplot(vdata, vx, showmeans=True, **violinplot_kwargs))
+        scatters.append(ax.scatter(scatterx, scattery, **scatter_kwargs))
+
+    return violins, scatters
 
 
 class LeftRightBiasPlot(BasePlot):
@@ -140,11 +166,13 @@ class LeftRightBiasPlot(BasePlot):
         fig, ax_arr = self._fig_ax(fig_ax_arr, 1, 2, figsize=(10, 6))
         ax1, ax2 = ax_arr.flatten()
 
+        # axis 1
+
         ind = np.arange(len(df))
         width = 0.35
 
-        ax1.bar(ind, df["count_bias"], width, label="syn. count")
-        ax1.bar(ind + width, df["area_bias"], width, label="syn. area ($nm^2$)")
+        bar1 = ax1.bar(ind, df["count_bias"], width, label="syn. count")
+        bar2 = ax1.bar(ind + width, df["area_bias"], width, label="syn. area ($nm^2$)")
         ax1.set_xticks(ind + width / 2)
         ax1.set_xticklabels(df["edge_name"], rotation=45, ha="right")
         ax1.set_ylabel("asymmetry, +ve is left-biased")
@@ -152,24 +180,31 @@ class LeftRightBiasPlot(BasePlot):
 
         ax1.legend()
 
-        width = 2 * width
-        ind = np.array([0])
-        ax2.bar(
-            ind,
-            [np.abs(df["count_bias"]).mean()],
-            width,
-            yerr=[np.abs(df["count_bias"]).std()],
-            label="mean syn. count",
-        )
-        ax2.bar(
-            ind + width,
-            [np.abs(df["area_bias"]).mean()],
-            width,
-            yerr=[np.abs(df["area_bias"]).std()],
-            label="mean syn. area",
-        )
-        ax2.set_ylabel("mean absolute asymmetry")
-        ax2.set_xticks([ind, ind + width])
+        # axis 2
+
+        abs_count_area_bias = [np.abs(df["count_bias"]), np.abs(df["area_bias"])]
+
+        violins, scatters = add_violins(ax2, abs_count_area_bias, scatter_kwargs={"s": 5})
+
+        # width = 2 * width
+        # ind = np.array([0])
+
+        # ax2.bar(
+        #     ind,
+        #     [np.abs(df["count_bias"]).mean()],
+        #     width,
+        #     yerr=[np.abs(df["count_bias"]).std()],
+        #     label="mean syn. count",
+        # )
+        # ax2.bar(
+        #     ind + width,
+        #     [np.abs(df["area_bias"]).mean()],
+        #     width,
+        #     yerr=[np.abs(df["area_bias"]).std()],
+        #     label="mean syn. area",
+        # )
+        ax2.set_ylabel("absolute asymmetry")
+        ax2.set_xticks([1, 2])
         ax2.set_xticklabels(["count", "area"])
         ax2.set_ylim(0, 1)
 
