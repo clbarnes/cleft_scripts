@@ -1,8 +1,12 @@
+from __future__ import annotations
 import os
 import logging
 import itertools
+
+from contextlib import contextmanager
 from datetime import datetime
 from abc import ABCMeta, abstractmethod
+from pathlib import Path
 from typing import Optional, Union, Tuple, List
 
 import numpy as np
@@ -31,6 +35,9 @@ class BasePlot(metaclass=ABCMeta):
         self.name = str(name)
         self.logger.info("Creating plot object for " + self.name)
 
+        self.fig: Optional[Figure] = None
+        self.ax_arr: Optional[np.ndarray] = None
+
     def color(self, circuit: Circuit):
         return {
             Circuit.BROAD_PN: "#1f77b4",
@@ -48,7 +55,7 @@ class BasePlot(metaclass=ABCMeta):
     def cm(self, circuit: Circuit):
         return {"marker": self.marker(circuit), "color": self.color(circuit)}
 
-    def cml(self, circuit: Circuit, linestyle: str=""):
+    def cml(self, circuit: Circuit, linestyle: str = ""):
         d = self.cm(circuit)
         d["linestyle"] = linestyle
         return d
@@ -60,25 +67,6 @@ class BasePlot(metaclass=ABCMeta):
     def plot_name(self):
         return tokenize(self.title_base)
 
-    def _save_show(
-        self,
-        directory: Optional[os.PathLike],
-        show: bool,
-        fig: plt.Figure,
-        ext: str = DEFAULT_EXT,
-    ):
-        if directory:
-            directory = os.path.join(directory, self.plot_name)
-            name = tokenize(self.name)
-            if name:
-                directory = os.path.join(directory, name)
-            os.makedirs(directory or ".", exist_ok=True)
-            fname = f"{self.plot_name}{'_' + name if name else ''}_{datetime.now().isoformat()}.{ext or 'svg'}"
-            fig.savefig(os.path.join(directory, fname))
-        if show:
-            plt.show()
-        plt.close(fig)
-
     def _fig_ax(
         self, fig_ax_arr=None, nrows=1, ncols=1, **kwargs
     ) -> Tuple[Figure, np.ndarray]:
@@ -87,19 +75,42 @@ class BasePlot(metaclass=ABCMeta):
             ax_arr = ax_arr if isinstance(ax_arr, np.ndarray) else np.array([[ax_arr]])
         else:
             fig, ax_arr = plt.subplots(nrows, ncols, squeeze=False, **kwargs)
+
+        self.fig = fig
+        self.ax_arr = ax_arr
+
         return fig, ax_arr
 
     @abstractmethod
+    def _plot(self, fig_ax_arr=None, tex=USE_TEX, **kwargs):
+        fig, ax_arr = self._fig_ax(fig_ax_arr)
+
+    @contextmanager
     def plot(
-        self,
-        directory=None,
-        tex=USE_TEX,
-        show=True,
-        fig_ax_arr=None,
-        ext=DEFAULT_EXT,
-        **kwargs,
-    ):
-        pass
+            self,
+            fig_ax_arr=None,
+            tex=USE_TEX,
+            **kwargs,
+    ) -> BasePlot:
+        self._plot(fig_ax_arr, **kwargs)
+        try:
+            yield self
+        finally:
+            if self.fig:
+                plt.close(self.fig)
+            self.fig = None
+            self.ax_arr = None
+
+    def save(self, directory: Optional[os.PathLike] = None, ext: str = DEFAULT_EXT) -> Path:
+        directory = os.path.join(directory, self.plot_name)
+        name = tokenize(self.name)
+        if name:
+            directory = os.path.join(directory, name)
+        os.makedirs(directory or ".", exist_ok=True)
+        fname = f"{self.plot_name}{'_' + name if name else ''}_{datetime.now().isoformat()}.{ext or DEFAULT_EXT}"
+        path = Path(directory, fname)
+        self.fig.savefig(path)
+        return path
 
     def _filter_unilateral_nodes(self):
         def has_partner(skel: CircuitNode):
