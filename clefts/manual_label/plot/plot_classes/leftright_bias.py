@@ -120,15 +120,7 @@ class LeftRightBiasPlot(BasePlot):
 
         self.name = name
 
-    def plot(
-        self,
-        directory=None,
-        tex=USE_TEX,
-        show=True,
-        fig_ax_arr=None,
-        ext=DEFAULT_EXT,
-        **kwargs,
-    ):
+    def _plot(self, fig_ax_arr=None, tex=USE_TEX, log=False, **kwargs):
         post_keys_to_id = dict()
         edge_side_count_area = defaultdict(  # SkeletonGroup:
             lambda: defaultdict(  # Side:
@@ -217,5 +209,3 @@ class LeftRightBiasPlot(BasePlot):
         # if unilateral_labels:
         #     excluded_str = "Excluded unilateral edges:\n" + "\n".join(unilateral_labels)
         #     fig.text(0.5, 0.02, excluded_str)
-
-        self._save_show(directory, show, fig, ext)

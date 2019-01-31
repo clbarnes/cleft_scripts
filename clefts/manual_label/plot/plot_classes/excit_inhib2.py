@@ -30,15 +30,7 @@ class ExcitationInhibitionPlot(BasePlot):
         super().__init__(graph, name)
         self.graph = multidigraph_to_digraph(self.graph)
 
-    def plot(
-        self,
-        directory=None,
-        tex=USE_TEX,
-        show=True,
-        fig_ax_arr=None,
-        ext=DEFAULT_EXT,
-        **kwargs,
-    ):
+    def _plot(self, fig_ax_arr=None, tex=USE_TEX, log=False, **kwargs):
 
         skels = dict()
         target_classes = set()
@@ -129,4 +121,3 @@ class ExcitationInhibitionPlot(BasePlot):
             ax.legend()
 
         fig.tight_layout()
-        self._save_show(directory, show, fig, ext)

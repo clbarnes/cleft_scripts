@@ -27,15 +27,7 @@ class CountVsAreaPlot(BasePlot):
         super().__init__(graph, name)
         self.graph = multidigraph_to_digraph(self.graph)
 
-    def plot(
-        self,
-        directory=None,
-        tex=USE_TEX,
-        show=True,
-        fig_ax_arr=None,
-        ext=DEFAULT_EXT,
-        **kwargs,
-    ):
+    def _plot(self, fig_ax_arr=None, tex=USE_TEX, **kwargs):
         logger.debug("Plotting count vs area")
 
         edge_pairs, unpaired_edges = self.get_edge_pairs()
@@ -131,5 +123,3 @@ class CountVsAreaPlot(BasePlot):
 
         ax.legend()
         fig.tight_layout()
-
-        self._save_show(directory, show, fig, ext)

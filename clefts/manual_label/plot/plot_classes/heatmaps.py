@@ -189,56 +189,31 @@ class BaseHeatMap(BasePlot):
 class ContactNumberHeatMap(BaseHeatMap):
     title_base = "Contact number adjacency matrix"
 
-    def plot(
-        self,
-        directory=None,
-        tex=USE_TEX,
-        show=True,
-        fig_ax_arr=None,
-        ext=DEFAULT_EXT,
-        **kwargs,
-    ):
+    def _plot(self, fig_ax_arr=None, tex=USE_TEX, log=False, **kwargs):
+
         fig, ax_arr = self._fig_ax(fig_ax_arr)
         ax = ax_arr.flatten()[0]
 
         cax = self.plot_heatmap("count", fig, ax, DEFAULT_CMAP, None, CellLabels.ALL)
         ax.set_title(self.get_title(kwargs.get("title")))
-        self._save_show(directory, show, fig, ext)
 
 
 class SynapticAreaHeatMap(BaseHeatMap):
     title_base = "Synaptic area adjacency matrix"
 
-    def plot(
-        self,
-        directory=None,
-        tex=USE_TEX,
-        show=True,
-        fig_ax_arr=None,
-        ext=DEFAULT_EXT,
-        **kwargs,
-    ):
+    def _plot(self, fig_ax_arr=None, tex=USE_TEX, log=False, **kwargs):
         fig, ax_arr = self._fig_ax(fig_ax_arr)
         ax = ax_arr.flatten()[0]
 
         cax = self.plot_heatmap("area", fig, ax, DEFAULT_CMAP, None, CellLabels.ZEROS)
         fig.colorbar(cax, ax=ax)
         ax.set_title(self.get_title(kwargs.get("title")))
-        self._save_show(directory, show, fig, ext)
 
 
 class NormalisedDiffHeatMap(BaseHeatMap):
     title_base = "Normalised difference adjacency matrix"
 
-    def plot(
-        self,
-        directory=None,
-        tex=USE_TEX,
-        show=True,
-        fig_ax_arr=None,
-        ext=DEFAULT_EXT,
-        **kwargs,
-    ):
+    def _plot(self, fig_ax_arr=None, tex=USE_TEX, log=False, **kwargs):
         counts, (pre_nodes, post_nodes) = self.prepare_heatmap("count")
         areas, (pre_nodes2, post_nodes2) = self.prepare_heatmap("area")
 
@@ -266,7 +241,6 @@ class NormalisedDiffHeatMap(BaseHeatMap):
 
         fig.tight_layout()
         ax.set_title(self.get_title(kwargs.get("title")))
-        self._save_show(directory, show, fig, ext)
 
 
 class DendriticFractionHeatMap(BaseHeatMap):
@@ -277,15 +251,7 @@ class DendriticFractionHeatMap(BaseHeatMap):
         full.index = full["skeleton_id"]
         return full.loc[list(post_skids)]["post_count"]
 
-    def plot(
-        self,
-        directory=None,
-        tex=USE_TEX,
-        show=True,
-        fig_ax_arr=None,
-        ext=DEFAULT_EXT,
-        **kwargs,
-    ):
+    def _plot(self, fig_ax_arr=None, tex=USE_TEX, log=False, **kwargs):
         counts, (pre_nodes, post_nodes) = self.prepare_heatmap("count")
         post_counts = np.array(self._get_additional_data(n.id for n in post_nodes))
         fractions = counts / post_counts
@@ -311,8 +277,5 @@ class DendriticFractionHeatMap(BaseHeatMap):
 
         fig.colorbar(cax, ax=ax)
         ax.set_title(self.get_title(kwargs.get("title")))
-        self._save_show(directory, show, fig, ext)
 
         fig.tight_layout()
-        return cax
-

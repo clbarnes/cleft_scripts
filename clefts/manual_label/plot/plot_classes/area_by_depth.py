@@ -19,7 +19,7 @@ markers = {
 class DepthVsAreaPlot(BasePlot):
     title_base = "Postsynapse dendritic depth vs. synapse area"
 
-    def plot(self, directory=None, tex=USE_TEX, show=True, fig_ax_arr=None, ext=DEFAULT_EXT, **kwargs):
+    def _plot(self, fig_ax_arr=None, tex=USE_TEX, **kwargs):
         columns = ["circuit", "depth", "area"]
         circuit_set = set()
         data = []
@@ -68,5 +68,3 @@ class DepthVsAreaPlot(BasePlot):
 
         ax.legend(handles=handles)
         fig.tight_layout()
-
-        self._save_show(directory, show, fig, ext)
