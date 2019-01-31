@@ -2,10 +2,12 @@ import networkx as nx
 import logging
 
 import matplotlib
+from matplotlib import pyplot as plt
 
 from clefts.constants import PACKAGE_ROOT
 from clefts.dist_fit import NormalVsLognormal
 from clefts.manual_label.common import get_data, get_merged_all
+from manual_label.plot.constants import DEFAULT_EXT
 
 matplotlib.rcParams["text.usetex"] = True  # noqa
 
@@ -73,12 +75,15 @@ def get_merged_basin():
     return merge_multi(cho_basin_g, ln_basin_g)
 
 
-def all_plots_for_system(circuit: Circuit, **kwargs):
+def all_plots_for_system(circuit: Circuit, directory=None, ext=DEFAULT_EXT, show=False, **kwargs):
     logger.info("creating plots for " + str(circuit))
     multi_g = get_data(circuit)
     for plot_class in circuit_plot_classes:
-        plot_obj = plot_class(multi_g, circuit)
-        plot_obj.plot(**kwargs)
+        with plot_class(multi_g, circuit).plot(**kwargs) as plot:
+            if directory:
+                plot.save(directory, ext)
+            if show:
+                plt.show()
 
 
 def orn_pn_plots(**kwargs):
@@ -93,11 +98,14 @@ def broad_pn_plots(**kwargs):
     all_plots_for_system(Circuit.BROAD_PN, **kwargs)
 
 
-def combined_plots(**kwargs):
+def combined_plots(directory=None, ext=DEFAULT_EXT, show=False, **kwargs):
     g = get_merged_all()
-    for cls in combined_plot_classes:
-        plot = cls(g, "Combined")
-        plot.plot(**kwargs)
+    for plot_class in combined_plot_classes:
+        with plot_class(g, "Combined").plot(**kwargs) as plot:
+            if directory:
+                plot.save(directory, ext)
+            if show:
+                plt.show()
 
 
 def syn_area_distribution():
