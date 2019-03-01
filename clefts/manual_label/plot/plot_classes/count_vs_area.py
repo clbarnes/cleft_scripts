@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class CountVsAreaPlot(BasePlot):
-    title_base = "Synaptic area vs. contact number"
+    title_base = "Total synaptic area vs. contact number"
     xlabel = "syn. count"
 
     x_key = "count"

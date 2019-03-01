@@ -1,6 +1,6 @@
 from string import ascii_lowercase
 
-USE_TEX = True
+USE_TEX = False
 
 DEFAULT_EXT = "svg"
 # DEFAULT_EXT = 'pdf'

@@ -7,9 +7,9 @@ from matplotlib import pyplot as plt
 from clefts.constants import PACKAGE_ROOT
 from clefts.dist_fit import NormalVsLognormal
 from clefts.manual_label.common import get_data, get_merged_all
-from manual_label.plot.constants import DEFAULT_EXT
+from manual_label.plot.constants import DEFAULT_EXT, USE_TEX
 
-matplotlib.rcParams["text.usetex"] = True  # noqa
+matplotlib.rcParams["text.usetex"] = USE_TEX  # noqa
 
 from clefts.manual_label.constants import (
     ORN_PN_DIR,
@@ -19,6 +19,7 @@ from clefts.manual_label.constants import (
 )
 from clefts.manual_label.plot.plot_classes import (
     CountVsAreaPlot,
+    CountVsAvgAreaPlot,
     LeftRightBiasPlot,
     AreaHistogramPlot,
     FracVsAreaPlot,
@@ -50,6 +51,7 @@ circuit_plot_classes = [
 
 combined_plot_classes = [
     CompareAreaViolinPlot,
+    CountVsAvgAreaPlot,
     DepthVsAreaPlot,
     ExcitationInhibitionPlot,
 ]
@@ -130,16 +132,17 @@ if __name__ == "__main__":
 
     circuits = list(Circuit)
     # circuits = [Circuit.CHO_BASIN]
-    # circuits = []
-    # combined_plot_classes = [
-    #     # CompareAreaViolinPlot,
-    #     # DepthVsAreaPlot,
-    #     # ExcitationInhibitionPlot,
-    # ]
+    circuits = []
+    combined_plot_classes = [
+        # CompareAreaViolinPlot,
+        CountVsAvgAreaPlot,
+        # DepthVsAreaPlot,
+        # ExcitationInhibitionPlot,
+    ]
     # circuit_plot_classes = [LeftRightBiasPlot]
 
-    for circuit in circuits:
-        all_plots_for_system(circuit, **kwargs)
+    # for circuit in circuits:
+    #     all_plots_for_system(circuit, **kwargs)
 
     combined_plots(**kwargs)
     #

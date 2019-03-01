@@ -2,7 +2,7 @@ from __future__ import annotations
 import os
 import logging
 import itertools
-
+from io import StringIO
 from contextlib import contextmanager
 from datetime import datetime
 from abc import ABCMeta, abstractmethod
@@ -24,6 +24,17 @@ from manual_label.common import iter_data
 def tokenize(s):
     s = str(s).lower().replace(" ", "_").replace("/", "_")
     return "".join(c for c in s if c in TOKEN_CHARS)
+
+
+# def save_without_miterlimit(fig: Figure, path):
+#     with StringIO() as buf:
+#         fig.savefig(buf)
+#         buf.seek(0)
+#         s = buf.read()
+#
+#     s = s.replace('stroke-miterlimit:100000;', '')
+#     with open(path, "w") as f:
+#         f.write(s)
 
 
 class BasePlot(metaclass=ABCMeta):
@@ -101,16 +112,36 @@ class BasePlot(metaclass=ABCMeta):
             self.fig = None
             self.ax_arr = None
 
-    def save(self, directory: Optional[os.PathLike] = None, ext: str = DEFAULT_EXT) -> Path:
-        directory = os.path.join(directory, self.plot_name)
+    def save(
+        self, directory: Optional[os.PathLike] = None, ext: str = DEFAULT_EXT,
+        in_subdir=True, timestamp=True, plot_name='', **kwargs
+    ) -> Path:
+        plot_name = plot_name or self.plot_name
+        directory = os.path.join(directory, plot_name)
         name = tokenize(self.name)
-        if name:
+        if name and in_subdir:
             directory = os.path.join(directory, name)
         os.makedirs(directory or ".", exist_ok=True)
-        fname = f"{self.plot_name}{'_' + name if name else ''}_{datetime.now().isoformat()}.{ext or DEFAULT_EXT}"
+
+        if not timestamp:
+            ts_str = ''
+        elif isinstance(timestamp, str):
+            ts_str = '_' + timestamp
+        elif isinstance(timestamp, datetime):
+            ts_str = '_' + timestamp.isoformat()
+        else:
+            ts_str = '_' + datetime.now().isoformat()
+        fname = f"{plot_name}{'_' + name if name else ''}{ts_str}.{ext or DEFAULT_EXT}"
         path = Path(directory, fname)
-        self.fig.savefig(path)
+        # if fix_miterlimit:
+        #     save_without_miterlimit(self.fig, path)
+        # else:
+        self.fig.savefig(path, bbox_inches="tight", **kwargs)
         return path
+
+    def save_simple(self, fpath, **kwargs):
+        self.fig.savefig(fpath, bbox_inches="tight", pad_inches=0, **kwargs)
+        return fpath
 
     def _filter_unilateral_nodes(self):
         def has_partner(skel: CircuitNode):

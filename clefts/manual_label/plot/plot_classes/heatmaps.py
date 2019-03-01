@@ -81,7 +81,7 @@ def draw_heatmap(
 
     if yticklabels and len(yticklabels) == arr.shape[0]:
         ax.set_yticks(np.arange(len(yticklabels)))
-        ax.set_yticklabels(yticklabels)
+        ax.set_yticklabels(yticklabels, rotation=45, ha="right", va="bottom", rotation_mode="anchor")
 
     if xticklabels and len(xticklabels) == arr.shape[1]:
         ax.set_xticks(np.arange(len(xticklabels)))
@@ -182,7 +182,7 @@ class BaseHeatMap(BasePlot):
             cell_labels=cell_labels,
         )
 
-        fig.tight_layout()
+        #fig.tight_layout()
         return cax
 
 
@@ -239,7 +239,7 @@ class NormalisedDiffHeatMap(BaseHeatMap):
         )
         fig.colorbar(cax, ax=ax)
 
-        fig.tight_layout()
+        #fig.tight_layout()
         ax.set_title(self.get_title(kwargs.get("title")))
 
 
@@ -278,4 +278,4 @@ class DendriticFractionHeatMap(BaseHeatMap):
         fig.colorbar(cax, ax=ax)
         ax.set_title(self.get_title(kwargs.get("title")))
 
-        fig.tight_layout()
+        #fig.tight_layout()
