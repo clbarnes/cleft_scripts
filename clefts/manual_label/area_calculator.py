@@ -1,7 +1,9 @@
+from collections import defaultdict
+
 import networkx as nx
 from scipy.ndimage import convolve, gaussian_filter1d
 from skimage.morphology import skeletonize
-from typing import Dict
+from typing import Dict, Set
 import logging
 
 import numpy as np
@@ -23,13 +25,22 @@ class AreaCalculator(metaclass=ABCMeta):
         self.arr = arr
         self.logger = logging.getLogger(f"{__name__}.{type(self).__name__}")
 
-    def label_set(self, arr=None):
+    def label_set(self, arr=None) -> Set[int]:
         arr = self.arr if arr is None else arr
         return set(np.unique(arr)) - SpecialLabel.values()
 
     @abstractmethod
     def calculate(self) -> Dict[int, float]:
         pass
+
+
+class SliceCountAreaCalculator(AreaCalculator):
+    def calculate(self):
+        counts = defaultdict(lambda: 0)
+        for z_plane in self.arr:
+            for label in self.label_set(z_plane):
+                counts[label] += 1
+        return dict(counts)
 
 
 class SimpleAreaCalculator(AreaCalculator):
@@ -49,13 +60,11 @@ class SkeletonizingAreaCalculator(AreaCalculator):
     """
 
     def calculate(self):
-        counts = dict()
+        counts = defaultdict(lambda: 0)
         for z_plane in self.arr:
             for label in self.label_set(z_plane):
-                if label not in counts:
-                    counts[label] = 0
                 counts[label] += skeletonize(z_plane == label).sum() * PX_AREA
-        return counts
+        return dict(counts)
 
 
 class LinearAreaCalculator(AreaCalculator):
@@ -80,14 +89,12 @@ class LinearAreaCalculator(AreaCalculator):
         )[skeletonized_2d].sum()
 
     def calculate(self):
-        total_lengths = dict()
+        total_lengths = defaultdict(lambda: 0)
         for z_plane in self.arr:
             for label in self.label_set(z_plane):
-                if label not in total_lengths:
-                    total_lengths[label] = 0
                 skeletonized = skeletonize(z_plane == label)
                 total_lengths[label] += self.length(skeletonized) * RESOLUTION["z"]
-        return total_lengths
+        return dict(total_lengths)
 
 
 neighbour_kernel = 2 ** np.array([
