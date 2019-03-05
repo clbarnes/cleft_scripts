@@ -132,17 +132,17 @@ if __name__ == "__main__":
 
     circuits = list(Circuit)
     # circuits = [Circuit.CHO_BASIN]
-    circuits = []
-    combined_plot_classes = [
+    # circuits = []
+    # combined_plot_classes = [
         # CompareAreaViolinPlot,
-        CountVsAvgAreaPlot,
+        # CountVsAvgAreaPlot,
         # DepthVsAreaPlot,
         # ExcitationInhibitionPlot,
-    ]
+    # ]
     # circuit_plot_classes = [LeftRightBiasPlot]
 
-    # for circuit in circuits:
-    #     all_plots_for_system(circuit, **kwargs)
+    for circuit in circuits:
+        all_plots_for_system(circuit, **kwargs)
 
     combined_plots(**kwargs)
     #

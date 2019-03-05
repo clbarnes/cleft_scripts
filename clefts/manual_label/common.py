@@ -1,5 +1,6 @@
 import networkx as nx
 import os
+from tqdm import tqdm
 from typing import NamedTuple, Tuple, Iterator, Dict, Any
 import logging
 
@@ -239,3 +240,9 @@ def edges_as_df(*circuits: Circuit, sanitise=False) -> Tuple[pd.DataFrame, Dict[
         all_data.extend(rows)
 
     return pd.DataFrame(data=all_data, columns=headers), per_circuit
+
+
+class TqdmStream:
+    @classmethod
+    def write(cls, msg):
+        tqdm.write(msg, end='')

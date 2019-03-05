@@ -1,3 +1,5 @@
+import os
+
 from enum import IntEnum
 from pathlib import Path
 from string import ascii_lowercase
@@ -63,13 +65,13 @@ class Circuit(CustomStrEnum):
         return "{} $\\rightarrow$ {}".format(*str(self).split("-"))
 
 
-MANUAL_CLEFTS_DIR = Path("/data2/manual_clefts")
+MANUAL_LABEL_DIR = Path(os.environ["MANUAL_LABEL_DIR"])
 
 DATA_DIRS = {
-    Circuit.ORN_PN: MANUAL_CLEFTS_DIR / "82a_45a_ORN-PN",
-    Circuit.LN_BASIN: MANUAL_CLEFTS_DIR / "LN-basin",
-    Circuit.CHO_BASIN: MANUAL_CLEFTS_DIR / "cho-basin",
-    Circuit.BROAD_PN: MANUAL_CLEFTS_DIR / "broad-PN"
+    Circuit.ORN_PN: MANUAL_LABEL_DIR / "82a_45a_ORN-PN",
+    Circuit.LN_BASIN: MANUAL_LABEL_DIR / "LN-basin",
+    Circuit.CHO_BASIN: MANUAL_LABEL_DIR / "cho-basin",
+    Circuit.BROAD_PN: MANUAL_LABEL_DIR / "broad-PN"
 }
 
 CHO_BASIN_DIR = DATA_DIRS[Circuit.CHO_BASIN]

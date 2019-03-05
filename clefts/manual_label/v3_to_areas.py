@@ -1,4 +1,4 @@
-"""Convert v2-annotated clefts into an HDF5-serialised table with areas. Used for LN-basin data"""
+"""Convert v3-annotated clefts into an HDF5-serialised table with areas. Used for LN-basin, broad-PN data"""
 import json
 import logging
 import os
