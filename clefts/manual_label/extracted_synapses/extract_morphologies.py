@@ -137,33 +137,37 @@ class SynapseInfo(NamedTuple):
         with ensure_group(fpath, path, 'r') as g:
             ds = g[name]
             logger.debug(f"opened {g.file.filename}::{ds.name}")
-            d = ds.attrs
-            return SynapseInfo(
-                pre_tn=Treenode(
-                    d["pre_tn.id"],
-                    d["pre_tn.location_nm_zyx"],
-                    d["pre_tn.skeleton_id"],
+            return cls.from_dataset(ds)
+
+    @classmethod
+    def from_dataset(cls, ds):
+        d = ds.attrs
+        return SynapseInfo(
+            pre_tn=Treenode(
+                d["pre_tn.id"],
+                d["pre_tn.location_nm_zyx"],
+                d["pre_tn.skeleton_id"],
+            ),
+            connector=Connector(
+                d["connector.id"],
+                d["connector.location_nm_zyx"],
+            ),
+            post_tn=Treenode(
+                d["post_tn.id"],
+                d["post_tn.location_nm_zyx"],
+                d["post_tn.skeleton_id"],
+            ),
+            synapse=ExtractedSynapse(
+                id=FullLabelId(
+                    Circuit(d["synapse.id.circuit"]),
+                    d["synapse.id.filename"],
+                    d["synapse.id.label_id"],
                 ),
-                connector=Connector(
-                    d["connector.id"],
-                    d["connector.location_nm_zyx"],
-                ),
-                post_tn=Treenode(
-                    d["post_tn.id"],
-                    d["post_tn.location_nm_zyx"],
-                    d["post_tn.skeleton_id"],
-                ),
-                synapse=ExtractedSynapse(
-                    id=FullLabelId(
-                        Circuit(d["synapse.id.circuit"]),
-                        d["synapse.id.filename"],
-                        d["synapse.id.label_id"],
-                    ),
-                    local_offset_px_zyx=d["synapse.local_offset_px_zyx"],
-                    global_offset_nm_zyx=d["synapse.global_offset_nm_zyx"],
-                    volume=ds[:],
-                )
+                local_offset_px_zyx=d["synapse.local_offset_px_zyx"],
+                global_offset_nm_zyx=d["synapse.global_offset_nm_zyx"],
+                volume=ds[:],
             )
+        )
 
     @classmethod
     def iter_from_hdf5(cls, fpath, group_key):

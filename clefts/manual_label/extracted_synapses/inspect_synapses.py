@@ -9,7 +9,7 @@ from pathlib import Path
 from skimage.morphology import skeletonize
 from tqdm import tqdm
 
-from clefts.manual_label.extract_morphologies import SynapseInfo
+from clefts.manual_label.extracted_synapses.extract_morphologies import SynapseInfo
 from clefts.manual_label.constants import DATA_DIRS
 from clefts.constants import Dataset
 from clefts.manual_label.common import TqdmStream
