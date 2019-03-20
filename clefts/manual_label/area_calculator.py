@@ -7,7 +7,7 @@ from typing import Dict, Set
 import logging
 
 import numpy as np
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, ABC
 
 from clefts.constants import SpecialLabel, RESOLUTION
 from clefts.manual_label.constants import PX_AREA
@@ -265,6 +265,22 @@ class ContortedSheetAreaCalculator(LinearAreaCalculator):
         U-shaped (in z) synapses
         registration errors
 
+        """
+        raise NotImplementedError()
+
+
+class PCATriangulationAreaCalculator(AreaCalculator):
+    def calculate(self) -> Dict[int, float]:
+        """
+        1. Do PCA, and transform with the first 2 PCs
+        2. Find the Delaunay triangulation
+        3. Reverse-transform back into 3D
+        4. Using the simplex membership from the Delaunay triangulation, find the area of all the triangles
+
+        Problems
+        --------
+        - Does not deal with holes
+        - If PCA is not quite right, triangulation may not be sound
         """
         raise NotImplementedError()
 

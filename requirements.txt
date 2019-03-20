@@ -27,3 +27,4 @@ enum34-custom
 figurefirst
 svgutils
 tqdm
+scikit-learn

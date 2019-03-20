@@ -16,7 +16,7 @@ pip install -r requirements
 
 ### fetch_mesh
 
-```bash
+```
 usage: fetch_mesh.py [-h] -c CREDENTIALS -o OUTPUT [-s STACK_ID] volume
 
 positional arguments:
@@ -36,7 +36,7 @@ optional arguments:
 
 ### training_data
 
-```bash
+```
 usage: training_data.py [-h] -c CREDENTIALS -o OUTPUT -s STACK_ID [-n]
                         [-p PAD_XY] [-z PAD_Z]
                         roi [roi ...]
