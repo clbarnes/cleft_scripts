@@ -1,5 +1,3 @@
-import csv
-
 from clefts.manual_label.common import get_data
 from clefts.manual_label.constants import Circuit, TABLES_DIR
 from clefts.manual_label.plot_utils import multidigraph_to_digraph
