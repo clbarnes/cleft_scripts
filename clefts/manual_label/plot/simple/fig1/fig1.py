@@ -1,3 +1,13 @@
+"""
+Known data
+==========
+
+For each layer of interest:
+
+- anatomy for each projection of interest
+- heatmap of contact fraction
+    - with contact number in each cell
+"""
 import itertools
 from pathlib import Path
 

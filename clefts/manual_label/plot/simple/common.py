@@ -8,6 +8,7 @@ here = Path(__file__).absolute().parent
 SIMPLE_DATA = here / "data"
 
 DIAG_LABELS = dict(rotation=45, ha="right", va="center", rotation_mode="anchor")
+RIGHT_ARROW = "→"
 
 def shortskid(s: str):
     if not s.endswith(")"):

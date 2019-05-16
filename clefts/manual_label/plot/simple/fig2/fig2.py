@@ -1,3 +1,9 @@
+"""Distribution of synapse areas
+
+a) schematic of labelling process
+b) histograms of synapse area, with lognorm best fit
+    - p values for ranksum comparisons
+"""
 import itertools
 from pathlib import Path
 from typing import Dict, List
