@@ -21,7 +21,7 @@ from matplotlib.collections import PathCollection
 from scipy import stats
 
 from manual_label.constants import Circuit
-from manual_label.plot.simple.common import SIMPLE_DATA, FiFiWrapper, RIGHT_ARROW, rcParams
+from manual_label.plot.simple.common import SIMPLE_DATA, FiFiWrapper, RIGHT_ARROW, rcParams, DAGGER
 
 matplotlib.rcParams.update(rcParams)
 
@@ -134,18 +134,34 @@ for idx, circuit in enumerate(circ_list):
         if len(values) == 2:
             ax.plot(this_x, this_y, '--', color=this_paths.get_facecolor()[0])
 
-    # ax.legend(loc="lower right")
-
-    # ax.scatter(sub_df["contact_number"], sub_df["synaptic_area"])
-
     gradient, intercept, r, _, _ = stats.linregress(sub_df["contact_number"], sub_df["synaptic_area"])
     x_minmax = np.array([x.min(), x.max()])
     ax.plot(x_minmax, x_minmax * gradient + intercept, 'k--')
     ax.plot(joint_x_minmax, joint_x_minmax * joint_gradient + joint_intercept, 'k:', alpha=0.2)
 
-    if circuit == Circuit.ORN_PN:
-        # todo: handle arrows pointing to outliers
-        pass
+    # handle points outside axes: only works if they're off the top right
+    outside = np.logical_or(x > XLIM[1], y > ylim[1])
+    diag = (XLIM[0] - XLIM[1], ylim[0] - ylim[1])
+    for this_x, this_y in zip(x[outside], y[outside]):
+        delta_intercept = this_y - (this_x * joint_gradient + joint_intercept)
+        if delta_intercept < 0:
+            annotated_point = [XLIM[1], ylim[1] + delta_intercept]
+        else:
+            y_at_x = ylim[1] - delta_intercept
+            as_ppn = (y_at_x - ylim[0]) / (ylim[1] - ylim[0])
+            x_point = XLIM[0] + as_ppn * (XLIM[1] - XLIM[0])
+            annotated_point = [x_point, ylim[1]]
+
+        ax.annotate(
+            DAGGER,
+            annotated_point,
+            (-2 * FONTSIZE, -2 * FONTSIZE),
+            arrowprops={"arrowstyle": '->'},
+            textcoords="offset points",
+            horizontalalignment='right',
+            verticalalignment="center",
+            fontsize='x-large',
+        )
 
     ax.grid(which='major', axis='both')
     ax.set_xlim(*XLIM)
