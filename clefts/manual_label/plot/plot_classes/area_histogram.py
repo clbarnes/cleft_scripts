@@ -72,7 +72,7 @@ class AreaHistogramPlot(BasePlot):
 
 if __name__ == '__main__':
 
-    plt.rc("text", usetex=True)
+    plt.rc("text", usetex=False)
     g = get_data(Circuit.CHO_BASIN)
     p = AreaHistogramPlot(g)
     p.plot()
