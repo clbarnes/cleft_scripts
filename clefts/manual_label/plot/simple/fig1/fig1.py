@@ -63,7 +63,7 @@ for circuit in Circuit:
     ax = layout.axes[str(circuit) + ADJ_TAIL]
     fig = ax.get_figure()
 
-    im = ax.imshow(frac_arr, cmap="summer_r")
+    im = ax.imshow(frac_arr, cmap="summer_r", vmin=0)
 
     for row, col in itertools.product(*[range(i) for i in count_arr.shape]):
         if not np.ma.is_masked(count_arr[row, col]):
@@ -73,7 +73,7 @@ for circuit in Circuit:
     ax.set_yticklabels(yticklabels, fontdict=fontdict, **DIAG_LABELS)
 
     ax.set_xticks(np.arange(len(xticklabels)))
-    ax.set_xticklabels(xticklabels, rotation=45, fontdict=fontdict, **DIAG_LABELS)
+    ax.set_xticklabels(xticklabels, fontdict=fontdict, **DIAG_LABELS)
 
     cbar = fig.colorbar(im, cax=layout.axes[str(circuit) + CBAR_TAIL])
     cbar.ax.tick_params(labelsize=FONTSIZE)
