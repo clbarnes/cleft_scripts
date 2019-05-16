@@ -1,6 +1,6 @@
 import itertools
 from pathlib import Path
-from typing import Dict, Tuple, List
+from typing import Dict, List
 from warnings import warn
 
 import pandas as pd
