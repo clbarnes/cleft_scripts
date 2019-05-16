@@ -1,5 +1,3 @@
-import csv
-
 from clefts.manual_label.common import get_data
 from clefts.manual_label.constants import Circuit, TABLES_DIR
 from clefts.manual_label.make_tables.common import iter_data, write_rows
@@ -41,4 +39,4 @@ for circuit in Circuit:
     write_rows(data_dir / f"{circuit}.csv", rows, HEADERS)
     all_data.extend(rows)
 
-write_rows(data_dir / "all.csv", all_data, HEADERS)
+write_rows(data_dir / "count_frac_area_all.csv", all_data, HEADERS)
