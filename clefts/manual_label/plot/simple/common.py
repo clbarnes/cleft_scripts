@@ -7,6 +7,7 @@ from matplotlib.axes import Axes
 here = Path(__file__).absolute().parent
 SIMPLE_DATA = here / "data"
 
+DIAG_LABELS = dict(rotation=45, ha="right", va="center", rotation_mode="anchor")
 
 def shortskid(s: str):
     if not s.endswith(")"):
@@ -37,3 +38,12 @@ class FiFiWrapper:
         self.layout.insert_figures(self.tgt_layer, True)
         self.layout.set_layer_visibility(self.template_layer, not hide_template)
         self.layout.write_svg(outpath)
+
+
+rcParams = {
+    "svg.fonttype": "none",
+    # "savefig.bbox": "tight",
+    # "savefig.pad_inches": 0,
+    "savefig.transparent": True,
+    "savefig.frameon": False,
+}

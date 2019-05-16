@@ -3,10 +3,12 @@ from pathlib import Path
 
 import pandas as pd
 import numpy as np
+import matplotlib
 
 from manual_label.constants import Circuit
-from manual_label.plot.simple.common import shortskid, SIMPLE_DATA, FiFiWrapper
+from manual_label.plot.simple.common import shortskid, SIMPLE_DATA, FiFiWrapper, DIAG_LABELS, rcParams
 
+matplotlib.rcParams.update(rcParams)
 
 here = Path(__file__).absolute().parent
 fig_path = here / "fig1.svg"
@@ -68,10 +70,10 @@ for circuit in Circuit:
             ax.text(col, row, count_arr[row, col], ha="center", va="center", color="k", fontdict=fontdict)
 
     ax.set_yticks(np.arange(len(yticklabels)))
-    ax.set_yticklabels(yticklabels, rotation=45, ha="right", va="center", rotation_mode="anchor", fontdict=fontdict)
+    ax.set_yticklabels(yticklabels, fontdict=fontdict, **DIAG_LABELS)
 
     ax.set_xticks(np.arange(len(xticklabels)))
-    ax.set_xticklabels(xticklabels, rotation=45, ha="right", va="center", rotation_mode="anchor", fontdict=fontdict)
+    ax.set_xticklabels(xticklabels, rotation=45, fontdict=fontdict, **DIAG_LABELS)
 
     cbar = fig.colorbar(im, cax=layout.axes[str(circuit) + CBAR_TAIL])
     cbar.ax.tick_params(labelsize=FONTSIZE)
