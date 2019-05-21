@@ -19,6 +19,7 @@ from manual_label.constants import Circuit
 from manual_label.plot.simple.common import shortskid, SIMPLE_DATA, FiFiWrapper, DIAG_LABELS, rcParams
 
 matplotlib.rcParams.update(rcParams)
+matplotlib.rcParams["svg.hashsalt"] = "fig1"
 
 here = Path(__file__).absolute().parent
 fig_path = here / "fig1.svg"

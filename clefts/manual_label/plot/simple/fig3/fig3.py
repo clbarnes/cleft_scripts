@@ -10,20 +10,22 @@ Todo
 """
 from collections import defaultdict
 from pathlib import Path
+from typing import Tuple
 from warnings import warn
 import re
 
 import pandas as pd
 import numpy as np
+from numpy.polynomial.polynomial import polyfit, Polynomial
 import matplotlib
 from matplotlib.axes import Axes
 from matplotlib.collections import PathCollection
-from scipy import stats
 
 from manual_label.constants import Circuit
 from manual_label.plot.simple.common import SIMPLE_DATA, FiFiWrapper, RIGHT_ARROW, rcParams, DAGGER
 
 matplotlib.rcParams.update(rcParams)
+matplotlib.rcParams["svg.hashsalt"] = "fig3"
 
 here = Path(__file__).absolute().parent
 fig_path = here / "fig3.svg"
@@ -35,7 +37,7 @@ XLABEL = "synaptic contact number"
 YLABEL = r"total synaptic area ($\mu m^2$)"
 
 XLIM_JOINT = (0, 83)
-XLIM = (0, 26)
+XLIM = (0, 29)
 
 bracketed_re = re.compile(r' \(\d+\)$')
 
@@ -65,6 +67,53 @@ def pair_to_label(*names):
     return f" {RIGHT_ARROW} ".join(names)
 
 
+def weighted_linregress(x, y, degree=1, weights=None) -> Tuple[np.ndarray, float]:
+    """
+    https://en.wikipedia.org/wiki/Coefficient_of_determination#Definitions
+
+    :param x:
+    :param y:
+    :param degree:
+    :param weights:
+    :return:
+        - coefficients in increasing order of power of x (intercept, linear, quadratic etc.)
+        - coefficient of determination (R^2)
+    """
+    series, (weighted_sum_of_squares_of_residuals, _, _, _) = Polynomial.fit(
+        x, y, degree, full=True, w=weights
+    )
+    y_predicted = series(x)
+    mean_observed = np.mean(y)  # \bar{y}
+    total_sum_of_squares = np.sum((y - mean_observed)**2)  # SS_{tot}
+    # regression_sum_of_squares = np.sum((y_predicted - mean_observed)**2)
+    sum_of_squares_of_residuals = np.sum((y - y_predicted)**2)
+
+    coeff_determination = 1 - (sum_of_squares_of_residuals / total_sum_of_squares)
+
+    return series.convert().coef, coeff_determination.squeeze()
+
+
+def fmt_fit(coeffs, r2=None, x_name='x', y_name='y', name=None):
+    prefix = ''
+    if name:
+        prefix += name + ' '
+    prefix += f"best fit"
+    if r2 is not None:
+        prefix += f' (r^2 = {r2:.3f})'
+    prefix += f': {y_name} = '
+    term = []
+    for degree, c in enumerate(coeffs):
+        if degree == 0:
+            x_term = ''
+        elif degree == 1:
+            x_term = x_name
+        else:
+            x_term = f'{x_name}^{degree}'
+
+        term.append(f"({c:.2e}){x_term}")
+    return prefix + ' + '.join(term)
+
+
 # BROAD_PN = "broad-PN"
 # ORN_PN = "ORN-PN"
 # LN_BASIN = "LN-Basin"
@@ -85,8 +134,11 @@ df["synaptic_area"] /= 1_000_000
 joint_x = df["contact_number"]
 joint_y = df["synaptic_area"]
 
-joint_gradient, joint_intercept, joint_r, _, _ = stats.linregress(joint_x, joint_y)
-ylim_joint = tuple(joint_gradient * x + joint_intercept for x in XLIM_JOINT)
+(joint_intercept, joint_gradient), joint_r2 = weighted_linregress(
+    joint_x, joint_y, degree=1, weights=1/joint_x
+)
+print(fmt_fit((joint_intercept, joint_gradient), joint_r2, 'count', 'area', 'joint'))
+ylim_joint = (joint_gradient * XLIM_JOINT[0] + joint_intercept, 1.35)
 ylim = tuple(joint_gradient * x + joint_intercept for x in XLIM)
 
 # linear best fit for whole plot (should be 1:1 diagonal)
@@ -101,7 +153,16 @@ joint_ax.plot(joint_x_minmax, joint_x_minmax * joint_gradient + joint_intercept,
 #     [XLIM[0], ylim[1]],  # left top
 #     [XLIM[0], ylim[0]],  # left bottom
 # ])
-joint_ax.text(10, 1.25, "joint")
+joint_ax.grid(which='major', axis='both')
+joint_ax.text(
+    60, 0.2, "joint",
+    bbox={
+        "edgecolor": 'k',
+        "facecolor": "white",
+        "linewidth": 3,
+    }
+)
+# todo: increase y ceiling here and in template
 joint_ax.set_xlim(*XLIM_JOINT)
 joint_ax.set_ylim(*ylim_joint)
 joint_ax.set_ylabel(YLABEL)
@@ -134,12 +195,17 @@ for idx, circuit in enumerate(circ_list):
         if len(values) == 2:
             ax.plot(this_x, this_y, '--', color=this_paths.get_facecolor()[0])
 
-    gradient, intercept, r, _, _ = stats.linregress(sub_df["contact_number"], sub_df["synaptic_area"])
+    (intercept, gradient), r2 = weighted_linregress(
+        sub_df["contact_number"], sub_df["synaptic_area"], 1, 1/sub_df["contact_number"]
+    )
+    print(fmt_fit((intercept, gradient), r2, 'count', 'area', str(circuit)))
+
     x_minmax = np.array([x.min(), x.max()])
     ax.plot(x_minmax, x_minmax * gradient + intercept, 'k--')
     ax.plot(joint_x_minmax, joint_x_minmax * joint_gradient + joint_intercept, 'k:', alpha=0.2)
 
     # handle points outside axes: only works if they're off the top right
+    # todo: make arrows parallel with line of best fit?
     outside = np.logical_or(x > XLIM[1], y > ylim[1])
     diag = (XLIM[0] - XLIM[1], ylim[0] - ylim[1])
     for this_x, this_y in zip(x[outside], y[outside]):
@@ -166,7 +232,7 @@ for idx, circuit in enumerate(circ_list):
     ax.grid(which='major', axis='both')
     ax.set_xlim(*XLIM)
     ax.set_ylim(*ylim)
-    ax.text(3, 0.35, str(circuit), bbox={
+    ax.text(20, 0.05, str(circuit), bbox={
         "edgecolor": paths.get_facecolor()[0],
         "facecolor": "white",
         "linewidth": 3,
@@ -174,7 +240,10 @@ for idx, circuit in enumerate(circ_list):
 
     if idx == 0:
         # first plot, show zoom
-        joint_ax.indicate_inset_zoom(ax, label=None)
+        rectangle_patch, connector_lines = joint_ax.indicate_inset_zoom(ax, label=None)
+        for patch in [rectangle_patch] + connector_lines:
+            patch.set_edgecolor('0.2')
+            patch.set_linewidth(patch.get_linewidth()*1.5)
 
     if idx % 2:
         # plot is on right, disable y things
@@ -191,6 +260,6 @@ for idx, circuit in enumerate(circ_list):
         ax.set_xlabel(XLABEL)
 
 
-joint_ax.legend(loc="lower right")
+joint_ax.legend(loc="upper left")
 
 layout.save()
