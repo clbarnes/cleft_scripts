@@ -58,6 +58,9 @@ class Circuit(CustomStrEnum):
     def token(self):
         return "".join(c for c in str(self).lower() if c in ascii_lowercase)
 
+    def key(self):
+        return str(self).replace('-', '_')
+
     def tex(self):
         return "\\" + self.token()
 

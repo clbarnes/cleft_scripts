@@ -23,6 +23,7 @@ matplotlib.rcParams["svg.hashsalt"] = "fig1"
 
 here = Path(__file__).absolute().parent
 fig_path = here / "fig1.svg"
+caption_path: Path = here / "fig1.tex"
 
 FONTSIZE = 9
 ADJ_TAIL = " adj"
@@ -90,3 +91,16 @@ for circuit in Circuit:
     cbar.ax.tick_params(labelsize=FONTSIZE)
 
 layout.save()
+
+caption = r"""
+The anatomy and connectivity of the four circuits of interest.
+Presynaptic partners are shown in red, and postsynaptic in blue: synaptic sites are shown in cyan.
+PN-containing circuits are anterior XY projections.
+Basin-containing circuits are dorsal XZ projections.
+The connectivity matrices are have presynaptic partners on the Y axis, and postsynaptic partners on the X axis.
+Ambiguous pairs of neurons (lch5-2/4 and vchA/B, which are indistinguishable as their cell bodies lie outside the VNC) are distinguished by a truncated reconstruction ID.
+Squares in the connectivity matrix are coloured by what fraction of the target's dendritic input, by contact number, is represented by that edge.
+The absolute number of contacts is also included.
+"""
+
+caption_path.write_text(caption.strip())

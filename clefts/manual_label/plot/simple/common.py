@@ -11,6 +11,7 @@ DIAG_LABELS = dict(rotation=45, ha="right", va="center", rotation_mode="anchor")
 RIGHT_ARROW = "→"
 DAGGER = "†"
 
+
 def shortskid(s: str):
     if not s.endswith(")"):
         return s
@@ -47,5 +48,5 @@ rcParams = {
     # "savefig.bbox": "tight",
     # "savefig.pad_inches": 0,
     "savefig.transparent": True,
-    "savefig.frameon": False,
+    # "savefig.frameon": False,
 }

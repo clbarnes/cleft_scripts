@@ -345,22 +345,22 @@
     <path d="M 43.640884 452.743087  L 171.199939 452.743087  " style="fill:none;stroke:#000000;stroke-linecap:square;stroke-linejoin:miter;stroke-width:0.8;"/>
    </g>
    <g id="text_9">
-    <text style="font-family:DejaVu Sans;font-size:10px;font-style:normal;font-weight:normal;text-anchor:middle;" transform="rotate(-0, 59.585766, 503.337107)" x="59.585766" y="503.337107">∗∗∗</text>
+    <text style="font-family:DejaVu Sans;font-size:10px;font-style:normal;font-weight:normal;text-anchor:middle;" transform="rotate(-0, 123.365293, 567.116635)" x="123.365293" y="567.116635">ns</text>
    </g>
    <g id="text_10">
-    <text style="font-family:DejaVu Sans;font-size:10px;font-style:normal;font-weight:normal;text-anchor:middle;" transform="rotate(-0, 59.585766, 535.226871)" x="59.585766" y="535.226871">∗</text>
-   </g>
-   <g id="text_11">
-    <text style="font-family:DejaVu Sans;font-size:10px;font-style:normal;font-weight:normal;text-anchor:middle;" transform="rotate(-0, 91.475529, 535.226871)" x="91.475529" y="535.226871">∗</text>
-   </g>
-   <g id="text_12">
     <text style="font-family:DejaVu Sans;font-size:10px;font-style:normal;font-weight:normal;text-anchor:middle;" transform="rotate(-0, 59.585766, 567.116635)" x="59.585766" y="567.116635">ns</text>
    </g>
+   <g id="text_11">
+    <text style="font-family:DejaVu Sans;font-size:10px;font-style:normal;font-weight:normal;text-anchor:middle;" transform="rotate(-0, 59.585766, 535.226871)" x="59.585766" y="535.226871">ns</text>
+   </g>
+   <g id="text_12">
+    <text style="font-family:DejaVu Sans;font-size:10px;font-style:normal;font-weight:normal;text-anchor:middle;" transform="rotate(-0, 91.475529, 535.226871)" x="91.475529" y="535.226871">ns</text>
+   </g>
    <g id="text_13">
-    <text style="font-family:DejaVu Sans;font-size:10px;font-style:normal;font-weight:normal;text-anchor:middle;" transform="rotate(-0, 91.475529, 567.116635)" x="91.475529" y="567.116635">∗∗∗</text>
+    <text style="font-family:DejaVu Sans;font-size:10px;font-style:normal;font-weight:normal;text-anchor:middle;" transform="rotate(-0, 59.585766, 503.337107)" x="59.585766" y="503.337107">∗∗∗</text>
    </g>
    <g id="text_14">
-    <text style="font-family:DejaVu Sans;font-size:10px;font-style:normal;font-weight:normal;text-anchor:middle;" transform="rotate(-0, 123.365293, 567.116635)" x="123.365293" y="567.116635">ns</text>
+    <text style="font-family:DejaVu Sans;font-size:10px;font-style:normal;font-weight:normal;text-anchor:middle;" transform="rotate(-0, 91.475529, 567.116635)" x="91.475529" y="567.116635">∗∗∗</text>
    </g>
   </g>
   <g id="axes_2">

@@ -27,8 +27,9 @@ from manual_label.plot.simple.common import SIMPLE_DATA, FiFiWrapper, RIGHT_ARRO
 matplotlib.rcParams.update(rcParams)
 matplotlib.rcParams["svg.hashsalt"] = "fig3"
 
-here = Path(__file__).absolute().parent
-fig_path = here / "fig3.svg"
+here: Path = Path(__file__).absolute().parent
+fig_path: Path = here / "fig3.svg"
+caption_path: Path = here / "fig3.tex"
 
 FONTSIZE = matplotlib.rcParams["font.size"]
 JOINT_TAG = "joint"
@@ -263,3 +264,9 @@ for idx, circuit in enumerate(circ_list):
 joint_ax.legend(loc="upper left")
 
 layout.save()
+
+caption = r"""
+
+""".format()
+
+caption_path.write_text(caption.strip())

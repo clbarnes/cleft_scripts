@@ -6,7 +6,7 @@ b) histograms of synapse area, with lognorm best fit
 """
 import itertools
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, NamedTuple, Tuple
 from warnings import warn
 
 import pandas as pd
@@ -23,6 +23,7 @@ matplotlib.rcParams["svg.hashsalt"] = "fig2"
 
 here = Path(__file__).absolute().parent
 fig_path = here / "fig2.svg"
+caption_path: Path = here / "fig2.tex"
 
 FONTSIZE = matplotlib.rcParams["font.size"]
 LOG = True
@@ -39,8 +40,22 @@ if LOG:
     XLIM = tuple(np.log10(XLIM))
 
 
-def histograms(circ_list, df, layout, fontdict=None) -> Dict[Circuit, List[float]]:
+class NormParams(NamedTuple):
+    mu: float
+    sigma: float
+
+    def loc_scale(self):
+        return {"loc": self.mu, "scale": self.sigma}
+
+
+def histograms(
+    circ_list, df, layout, fontdict=None
+) -> Tuple[
+    Dict[Circuit, List[float]],
+    Dict[Circuit, NormParams]
+]:
     areas_by_circuit: Dict[Circuit, List[float]] = dict()
+    norm_params_by_circuit: Dict[Circuit, NormParams] = dict()
     bins = np.linspace(XLIM[0], XLIM[1], NBINS + 1)
     fontdict = fontdict or dict()
 
@@ -67,8 +82,9 @@ def histograms(circ_list, df, layout, fontdict=None) -> Dict[Circuit, List[float
         n, bins, patches = ax.hist(left_right, bins, stacked=True)
 
         # todo: floc=np.mean(both)?
-        loc, scale = stats.norm.fit(both)
-        distribution = stats.norm(loc=loc, scale=scale)
+        norm_params = NormParams(*stats.norm.fit(both))
+        norm_params_by_circuit[circuit] = norm_params
+        distribution = stats.norm(**norm_params.loc_scale())
         x = np.linspace(*XLIM)  # todo: num?
         y = distribution.pdf(x) * len(both) * (bins[1] - bins[0])  # really?
         best_fit = ax.plot(x, y, "k--")
@@ -86,7 +102,7 @@ def histograms(circ_list, df, layout, fontdict=None) -> Dict[Circuit, List[float
 
     last_ax = layout.axes[str(circ_list[-1]) + HIST_TAIL]
     last_ax.set_xlabel('synapse area ($log_{10}nm^2$)')
-    return areas_by_circuit
+    return areas_by_circuit, norm_params_by_circuit
 
 
 def ranksum(x, y):
@@ -109,6 +125,7 @@ def pval_matrix(circ_list, areas_by_circuit, layout, fontdict=None):
     fontdict = fontdict or dict()
 
     arr = np.full((len(circ_list), len(circ_list)), np.nan)
+    pval_to_ax = dict()
     for y_idx, x_idx in itertools.product(range(len(circ_list)), repeat=2):
         if x_idx >= y_idx:
             continue
@@ -117,7 +134,18 @@ def pval_matrix(circ_list, areas_by_circuit, layout, fontdict=None):
             areas_by_circuit[circ_list[x_idx]],
         )
         arr[y_idx, x_idx] = pval
-        ax.text(x_idx, y_idx, pval_to_asterisks(pval), ha="center", va="center", color="k", fontdict=fontdict)
+        pval_to_ax[pval] = (ax, (x_idx, y_idx))
+
+    assert len(pval_to_ax) == 6
+
+    # holm-bonferroni correction
+    thresholds = np.array([0.05, 0.01, 0.001])
+    for idx, pval in enumerate(sorted(pval_to_ax, reverse=True), 1):
+        ax, (x_idx, y_idx) = pval_to_ax[pval]
+        ax.text(
+            x_idx, y_idx, pval_to_asterisks(pval, thresholds / idx),
+            ha="center", va="center", color="k", fontdict=fontdict
+        )
 
     arr = np.ma.masked_where(np.isnan(arr), arr)
 
@@ -135,6 +163,23 @@ def pval_matrix(circ_list, areas_by_circuit, layout, fontdict=None):
     cbar.ax.tick_params(labelsize=FONTSIZE)
 
 
+caption_template = r"""
+Results of synaptic area labelling.
+\textbf{{Ai)}} The ssTEM images upon which the analysis is based.
+\textbf{{Aii)}} A schematic showing the plane of a neurite sectioned in the top image, and the pre- and post-synaptic sites of that neurite and one of its partners, in orange and red respectively.
+Note the T-bar, cleft and and postsynaptic membrane specialisation.
+\textbf{{Bi)}} For each of the four circuits, the distribution of synaptic areas on a $log_{{10}}$ scale.
+The number of synapses targeting a left-sided neuron are shown in blue; right-sided in orange.
+Each is overlaid with the best-fitting normal distribution (black dashed line):
+broad-PN $\mu = {broad_PN_mu:.2f}, \sigma = {broad_PN_sigma:.2f}$;
+ORN-PN $\mu = {ORN_PN_mu:.2f}, \sigma = {ORN_PN_sigma:.2f}$;
+LN-Basin $\mu = {LN_Basin_mu:.2f}, \sigma = {LN_Basin_sigma:.2f}$;
+cho-Basin $\mu = {cho_Basin_mu:.2f}, \sigma = {cho_Basin_sigma:.2f}$;
+and $\alpha = 0.1$ confidence intervals (green dotted line).
+\textbf{{Bii)}} Raw $p$-values (colouring) and FWER corrected~\citep*{{Holm1979}} significance levels for pairwise ranksum comparisons of circuit synapse area distributions.
+"""
+
+
 if __name__ == '__main__':
     df = pd.read_csv(SIMPLE_DATA / "synapse_areas_all.csv", index_col=False)
 
@@ -148,7 +193,17 @@ if __name__ == '__main__':
     # CHO_BASIN = "cho-Basin"
     circ_list = list(Circuit)
 
-    areas_by_circuit = histograms(circ_list, df, layout)
+    areas_by_circuit, norm_params_by_circuit = histograms(circ_list, df, layout)
     pval_matrix(circ_list, areas_by_circuit, layout)
 
     layout.save()
+
+    fmt_params = dict()
+    for circuit, norm_params in norm_params_by_circuit.items():
+        c_str = circuit.key()
+        fmt_params[c_str + '_mu'] = norm_params.mu
+        fmt_params[c_str + '_sigma'] = norm_params.sigma
+
+    caption = caption_template.format(**fmt_params)
+
+    caption_path.write_text(caption.strip())
