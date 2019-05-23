@@ -224,30 +224,46 @@ for idx, circuit in enumerate(circ_list):
     ax.plot(x_minmax, x_minmax * gradient + intercept, 'k--')
     ax.plot(joint_x_minmax, joint_x_minmax * joint_gradient + joint_intercept, 'k:', alpha=0.2)
 
-    # handle points outside axes: only works if they're off the top right
+    # handle points outside axes: only works if they're off the top right, +ve gradient
     # todo: make arrows parallel with line of best fit?
     outside = np.logical_or(x > XLIM[1], y > ylim[1])
     diag = (XLIM[0] - XLIM[1], ylim[0] - ylim[1])
     for this_x, this_y in zip(x[outside], y[outside]):
-        delta_intercept = this_y - (this_x * joint_gradient + joint_intercept)
-        if delta_intercept < 0:
-            annotated_point = [XLIM[1], ylim[1] + delta_intercept]
-        else:
-            y_at_x = ylim[1] - delta_intercept
-            as_ppn = (y_at_x - ylim[0]) / (ylim[1] - ylim[0])
-            x_point = XLIM[0] + as_ppn * (XLIM[1] - XLIM[0])
-            annotated_point = [x_point, ylim[1]]
+        delta_intercept = this_y - (this_x * gradient + intercept)
+        adjusted_intercept = delta_intercept + intercept
 
-        ax.annotate(
-            DAGGER,
+        y_at_xmax = XLIM[1] * gradient + adjusted_intercept
+        x_at_ymax = (ylim[1] - adjusted_intercept) / gradient
+        if ylim[0] < y_at_xmax <= ylim[1]:
+            annotated_point = (XLIM[1], y_at_xmax)
+        elif XLIM[0] < x_at_ymax < XLIM[1]:
+            annotated_point = (x_at_ymax, ylim[1])
+        else:
+            warn("excluded point cannot be easily pointed to from top or right spine")
+            continue
+
+        # unit vector with direction from arrowhead to text anchor
+        vec = np.array([
+            -1 / (XLIM[1] - XLIM[0]),
+            -gradient / (ylim[1] - ylim[0])
+        ])
+        vec /= np.linalg.norm(vec)
+
+        annotation = ax.annotate(
+            r"$\dagger$",
             annotated_point,
-            (-2 * FONTSIZE, -2 * FONTSIZE),
+            4 * FONTSIZE * vec,
             arrowprops={"arrowstyle": '->'},
             textcoords="offset points",
             horizontalalignment='right',
             verticalalignment="center",
             fontsize='x-large',
         )
+        arw = annotation.arrow_patch
+        old_zorder = arw.zorder
+        annotation.zorder = 10
+        arw.zorder = old_zorder
+
 
     ax.grid(which='major', axis='both')
     ax.set_xlim(*XLIM)
@@ -289,7 +305,7 @@ Least-squares linear regressions of contact number vs area for each edge, weight
 \textbf{{A)}} Joint regression line for all edges (black dashed line), {joint}.
 \textbf{{B)}} For each circuit, a zoomed-in region of \textbf{{A}}, showing the joint regression (grey dotted line) and the circuit-specific regression line (black dashed line).
 broad-PN {broad_PN};
-ORN-PN {ORN_PN} (\dagger points towards excluded outliers);
+ORN-PN {ORN_PN} (\dagger excluded outliers);
 LN-Basin {LN_Basin};
 cho-Basin {cho_Basin}.
 Left-right pairs, when unambiguous, are shown in the same colour and joined with a dashed line of that colour.
