@@ -10,7 +10,7 @@ Todo
 """
 from collections import defaultdict
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, NamedTuple
 from warnings import warn
 import re
 
@@ -41,6 +41,21 @@ XLIM_JOINT = (0, 83)
 XLIM = (0, 29)
 
 bracketed_re = re.compile(r' \(\d+\)$')
+
+
+class RegressionParams(NamedTuple):
+    intercept: float
+    gradient: float
+    coeff_determination: float
+
+    def tex(self, precision=3):
+        return r"$y = {m:.{p}f}x {sign} {c:.{p}f}, R^2 = {r2:.{p}f}$".format(
+            p=precision,
+            m=self.gradient,
+            c=abs(self.intercept),
+            sign='-' if self.gradient < 0 else '+',
+            r2=self.coeff_determination,
+        )
 
 
 def sideless_name(name: str, side: str):
@@ -169,6 +184,8 @@ joint_ax.set_ylim(*ylim_joint)
 joint_ax.set_ylabel(YLABEL)
 joint_ax.set_xlabel(XLABEL)
 
+fmt_params = {'joint': RegressionParams(joint_intercept, joint_gradient, joint_r2).tex()}
+
 for idx, circuit in enumerate(circ_list):
     skip_ylabel = bool(idx % 2)
     skip_xlabel = idx < 2
@@ -199,6 +216,8 @@ for idx, circuit in enumerate(circ_list):
     (intercept, gradient), r2 = weighted_linregress(
         sub_df["contact_number"], sub_df["synaptic_area"], 1, 1/sub_df["contact_number"]
     )
+    fmt_params[circuit.key()] = RegressionParams(intercept, gradient, r2).tex()
+
     print(fmt_fit((intercept, gradient), r2, 'count', 'area', str(circuit)))
 
     x_minmax = np.array([x.min(), x.max()])
@@ -266,7 +285,14 @@ joint_ax.legend(loc="upper left")
 layout.save()
 
 caption = r"""
-
-""".format()
+Least-squares linear regressions of contact number vs area for each edge, weighted by the reciprocal of the contact number to reduce leverage by high-$n$ edges.
+\textbf{{A)}} Joint regression line for all edges (black dashed line), {joint}.
+\textbf{{B)}} For each circuit, a zoomed-in region of \textbf{{A}}, showing the joint regression (grey dotted line) and the circuit-specific regression line (black dashed line).
+broad-PN {broad_PN};
+ORN-PN {ORN_PN} (\dagger points towards exclude outliers);
+LN-Basin {LN_Basin};
+cho-Basin {cho_Basin}.
+Left-right pairs, when unambiguous, are shown in the same colour and joined with a dashed line of that colour.
+""".format(**fmt_params)
 
 caption_path.write_text(caption.strip())
