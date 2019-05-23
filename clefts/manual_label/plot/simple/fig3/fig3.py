@@ -289,7 +289,7 @@ Least-squares linear regressions of contact number vs area for each edge, weight
 \textbf{{A)}} Joint regression line for all edges (black dashed line), {joint}.
 \textbf{{B)}} For each circuit, a zoomed-in region of \textbf{{A}}, showing the joint regression (grey dotted line) and the circuit-specific regression line (black dashed line).
 broad-PN {broad_PN};
-ORN-PN {ORN_PN} (\dagger points towards exclude outliers);
+ORN-PN {ORN_PN} (\dagger points towards excluded outliers);
 LN-Basin {LN_Basin};
 cho-Basin {cho_Basin}.
 Left-right pairs, when unambiguous, are shown in the same colour and joined with a dashed line of that colour.
