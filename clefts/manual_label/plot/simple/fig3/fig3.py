@@ -22,7 +22,7 @@ from matplotlib.axes import Axes
 from matplotlib.collections import PathCollection
 
 from manual_label.constants import Circuit
-from manual_label.plot.simple.common import SIMPLE_DATA, FiFiWrapper, RIGHT_ARROW, rcParams, DAGGER
+from manual_label.plot.simple.common import SIMPLE_DATA, FiFiWrapper, RIGHT_ARROW, rcParams, DAGGER, add_table
 
 matplotlib.rcParams.update(rcParams)
 matplotlib.rcParams["svg.hashsalt"] = "fig3"
@@ -178,11 +178,14 @@ joint_ax.text(
         "linewidth": 3,
     }
 )
-# todo: increase y ceiling here and in template
 joint_ax.set_xlim(*XLIM_JOINT)
 joint_ax.set_ylim(*ylim_joint)
 joint_ax.set_ylabel(YLABEL)
 joint_ax.set_xlabel(XLABEL)
+
+headers = ['gradient', 'intercept', '$R^2$']
+index = ["joint"]
+table = [[f"{joint_gradient:.3f}", f"{joint_intercept:.3f}", f"{joint_r2:.3f}"]]
 
 fmt_params = {'joint': RegressionParams(joint_intercept, joint_gradient, joint_r2).tex()}
 
@@ -217,6 +220,8 @@ for idx, circuit in enumerate(circ_list):
         sub_df["contact_number"], sub_df["synaptic_area"], 1, 1/sub_df["contact_number"]
     )
     fmt_params[circuit.key()] = RegressionParams(intercept, gradient, r2).tex()
+    index.append(str(circuit))
+    table.append([f"{gradient:.3f}", f"{intercept:.3f}", f"{r2:.3f}"])
 
     print(fmt_fit((intercept, gradient), r2, 'count', 'area', str(circuit)))
 
@@ -264,7 +269,6 @@ for idx, circuit in enumerate(circ_list):
         annotation.zorder = 10
         arw.zorder = old_zorder
 
-
     ax.grid(which='major', axis='both')
     ax.set_xlim(*XLIM)
     ax.set_ylim(*ylim)
@@ -296,6 +300,8 @@ for idx, circuit in enumerate(circ_list):
         ax.set_xlabel(XLABEL)
 
 
+add_table(layout.axes["table"], table, index, headers, fontsize=FONTSIZE)
+
 joint_ax.legend(loc="upper left")
 
 layout.save()
@@ -304,11 +310,8 @@ caption = r"""
 Least-squares linear regressions of contact number vs area for each edge, weighted by the reciprocal of the contact number to reduce leverage by high-$n$ edges.
 \textbf{{A)}} Joint regression line for all edges (black dashed line), {joint}.
 \textbf{{B)}} For each circuit, a zoomed-in region of \textbf{{A}}, showing the joint regression (grey dotted line) and the circuit-specific regression line (black dashed line).
-broad-PN {broad_PN};
-ORN-PN {ORN_PN} (\dagger excluded outliers);
-LN-Basin {LN_Basin};
-cho-Basin {cho_Basin}.
 Left-right pairs, when unambiguous, are shown in the same colour and joined with a dashed line of that colour.
+\textbf{{C)}} Table of regression line gradient ($\mu m^2 \textrm{{count}}^{{-1}}$ to 3 decimal places), $y$-intercept ($\mu m^2$ to 3 decimal places) coefficient of determination $R^2$ (to 3 decimal places).
 """.format(**fmt_params)
 
 caption_path.write_text(caption.strip())

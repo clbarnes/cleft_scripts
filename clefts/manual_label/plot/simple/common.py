@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 import figurefirst as fifi
 from matplotlib.axes import Axes
@@ -50,3 +50,17 @@ rcParams = {
     "savefig.transparent": True,
     # "savefig.frameon": False,
 }
+
+
+def add_table(ax: Axes, data: List[List[str]], index: List[str]=None, columns: List[str]=None, axis_off=True, **kwargs):
+    table_kwargs = {
+        "cellLoc": "center",
+        "colLoc": "center",
+        "rowLoc": "right",
+        "loc": "center",
+        # "bbox": ax.bbox.bounds
+    }
+    table_kwargs.update(kwargs)
+    if axis_off:
+        ax.axis('off')
+    return ax.table(data, colLabels=columns, rowLabels=index, **table_kwargs)

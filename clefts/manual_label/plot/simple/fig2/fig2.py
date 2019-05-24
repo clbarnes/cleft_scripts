@@ -16,7 +16,7 @@ from matplotlib.figure import Figure
 from scipy import stats
 
 from manual_label.constants import Circuit
-from manual_label.plot.simple.common import SIMPLE_DATA, FiFiWrapper, DIAG_LABELS, rcParams
+from manual_label.plot.simple.common import SIMPLE_DATA, FiFiWrapper, DIAG_LABELS, rcParams, add_table
 
 matplotlib.rcParams.update(rcParams)
 matplotlib.rcParams["svg.hashsalt"] = "fig2"
@@ -170,13 +170,9 @@ Results of synaptic area labelling.
 Note the T-bar, cleft and and postsynaptic membrane specialisation.
 \textbf{{Bi)}} For each of the four circuits, the distribution of synaptic areas on a $log_{{10}}$ scale.
 The number of synapses targeting a left-sided neuron are shown in blue; right-sided in orange.
-Each is overlaid with the best-fitting normal distribution (black dashed line):
-broad-PN $\mu = {broad_PN_mu:.2f}, \sigma = {broad_PN_sigma:.2f}$;
-ORN-PN $\mu = {ORN_PN_mu:.2f}, \sigma = {ORN_PN_sigma:.2f}$;
-LN-Basin $\mu = {LN_Basin_mu:.2f}, \sigma = {LN_Basin_sigma:.2f}$;
-cho-Basin $\mu = {cho_Basin_mu:.2f}, \sigma = {cho_Basin_sigma:.2f}$;
-and $\alpha = 0.1$ confidence intervals (green dotted line).
-\textbf{{Bii)}} Raw $p$-values (colouring) and FWER corrected~\citep*{{Holm1979}} significance levels for pairwise ranksum comparisons of circuit synapse area distributions.
+Each is overlaid with the best-fitting normal distribution (black dashed line).
+\textbf{{Bii)}} Table of normal distribution parameters, in $log_{{10}}nm^2$ to 3 decimal places.
+\textbf{{Biii)}} Raw $p$-values (colouring) and FWER corrected~\citep*{{Holm1979}} significance levels for pairwise ranksum comparisons of circuit synapse area distributions.
 """
 
 
@@ -196,13 +192,24 @@ if __name__ == '__main__':
     areas_by_circuit, norm_params_by_circuit = histograms(circ_list, df, layout)
     pval_matrix(circ_list, areas_by_circuit, layout)
 
-    layout.save()
+    joint_areas = np.log10(df.synaptic_area) if LOG else df.synaptic_area
+    mu, sigma = stats.norm.fit(joint_areas)
+
+    headers = [r"mean", r"SD"]
+    index = ["joint"]
+    table = [[f"{mu:.3f}", f"{sigma:.3f}"]]
 
     fmt_params = dict()
     for circuit, norm_params in norm_params_by_circuit.items():
+        index.append(str(circuit))
+        table.append([f"{norm_params.mu:.3f}", f"{norm_params.sigma:.3f}"])
         c_str = circuit.key()
         fmt_params[c_str + '_mu'] = norm_params.mu
         fmt_params[c_str + '_sigma'] = norm_params.sigma
+
+    add_table(layout.axes["table"], table, index, headers)
+
+    layout.save()
 
     caption = caption_template.format(**fmt_params)
 
