@@ -170,7 +170,7 @@ Results of synaptic area labelling.
 Note the T-bar, cleft and and postsynaptic membrane specialisation.
 \textbf{{Bi)}} For each of the four circuits, the distribution of synaptic areas on a $log_{{10}}$ scale.
 The number of synapses targeting a left-sided neuron are shown in blue; right-sided in orange.
-Each is overlaid with the best-fitting normal distribution (black dashed line).
+Each is overlaid with the best-fitting normal distribution (black dashed line) and 90\% confidence interval (green dotted line).
 \textbf{{Bii)}} Table of normal distribution parameters, in $log_{{10}}nm^2$ to 3 decimal places.
 \textbf{{Biii)}} Raw $p$-values (colouring) and FWER corrected~\citep*{{Holm1979}} significance levels for pairwise ranksum comparisons of circuit synapse area distributions.
 """

@@ -20,6 +20,7 @@ from numpy.polynomial.polynomial import polyfit, Polynomial
 import matplotlib
 from matplotlib.axes import Axes
 from matplotlib.collections import PathCollection
+from scipy import stats
 
 from manual_label.constants import Circuit
 from manual_label.plot.simple.common import SIMPLE_DATA, FiFiWrapper, RIGHT_ARROW, rcParams, DAGGER, add_table
@@ -83,6 +84,69 @@ def pair_to_label(*names):
     return f" {RIGHT_ARROW} ".join(names)
 
 
+class LinearRegression:
+    def __init__(self, x, y, degree=1, weights=None):
+        self.x = x
+        self.y = y
+        self.degree = degree
+        self.w = weights
+
+        self.series, (weighted_sum_of_squares_of_residuals, _, _, _) = Polynomial.fit(
+            x, y, degree, full=True, w=weights
+        )
+
+    @property
+    def coef(self):
+        return self.series.convert().coef
+
+    @property
+    def coef_determination(self):
+        """aka R^2"""
+        y_predicted = self(x)
+        mean_observed = np.mean(y)  # \bar{y}
+        total_sum_of_squares = np.sum((y - mean_observed) ** 2)  # SS_{tot}
+
+        # variance = total_sum_of_squares / (len(x) - 1)
+        # std_dev = np.sqrt(variance)
+        # std_err = std_dev / np.sqrt(len(x))
+
+        # regression_sum_of_squares = np.sum((y_predicted - mean_observed)**2)
+        sum_of_squares_of_residuals = np.sum((y - y_predicted) ** 2)
+
+        return 1 - (sum_of_squares_of_residuals / total_sum_of_squares)
+
+    def confidence_intervals(
+        self, alpha=0.1, x_samples=None, two_tailed=True
+    ) -> Tuple[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+        """https://tomholderness.wordpress.com/2013/01/10/confidence_intervals/
+
+        Returns (x, (y_lower, y_upper))
+        """
+        if two_tailed:
+            alpha /= 2
+        n = len(self.x) - 1
+        t = stats.t.ppf(1 - alpha, n)
+        mean_x = np.mean(self.x)
+
+        x = self.x if x_samples is None else np.linspace(self.x.min(), self.x.max(), x_samples)
+
+        y_predicted = self(x)
+        sum_of_squares_of_residuals = np.sum((y - y_predicted) ** 2)
+        conf_intervals = t * np.sqrt(
+            (
+                sum_of_squares_of_residuals/(n-2)
+            ) * (
+                1.0/n + (
+                    np.power(x - mean_x, 2) / ((np.sum(x**2)) - n*(mean_x**2))
+                )
+            )
+        )
+        return x, (y_predicted - np.abs(conf_intervals), y_predicted + np.abs(conf_intervals))
+
+    def __call__(self, x):
+        return self.series(x)
+
+
 def weighted_linregress(x, y, degree=1, weights=None) -> Tuple[np.ndarray, float]:
     """
     https://en.wikipedia.org/wiki/Coefficient_of_determination#Definitions
@@ -101,6 +165,11 @@ def weighted_linregress(x, y, degree=1, weights=None) -> Tuple[np.ndarray, float
     y_predicted = series(x)
     mean_observed = np.mean(y)  # \bar{y}
     total_sum_of_squares = np.sum((y - mean_observed)**2)  # SS_{tot}
+
+    # variance = total_sum_of_squares / (len(x) - 1)
+    # std_dev = np.sqrt(variance)
+    # std_err = std_dev / np.sqrt(len(x))
+
     # regression_sum_of_squares = np.sum((y_predicted - mean_observed)**2)
     sum_of_squares_of_residuals = np.sum((y - y_predicted)**2)
 
@@ -311,7 +380,8 @@ Least-squares linear regressions of contact number vs area for each edge, weight
 \textbf{{A)}} Joint regression line for all edges (black dashed line), {joint}.
 \textbf{{B)}} For each circuit, a zoomed-in region of \textbf{{A}}, showing the joint regression (grey dotted line) and the circuit-specific regression line (black dashed line).
 Left-right pairs, when unambiguous, are shown in the same colour and joined with a dashed line of that colour.
-\textbf{{C)}} Table of regression line gradient ($\mu m^2 \textrm{{count}}^{{-1}}$ to 3 decimal places), $y$-intercept ($\mu m^2$ to 3 decimal places) coefficient of determination $R^2$ (to 3 decimal places).
+\textdagger shows outliers beyond the limits of the ORN-PN plot.
+\textbf{{C)}} Table of regression line gradient ($\mu m^2 \textrm{{count}}^{{-1}}$ to 3 decimal places), $y$-intercept ($\mu m^2$ to 3 decimal places), and coefficient of determination $R^2$ (to 3 decimal places).
 """.format(**fmt_params)
 
 caption_path.write_text(caption.strip())

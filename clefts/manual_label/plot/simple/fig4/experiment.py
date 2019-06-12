@@ -84,46 +84,18 @@ estimate = stats.gamma(shape, loc, scale)
 # ax.plot(x, estimate.pdf(x))
 # plt.show(block=False)
 
-#complete pooling
-
-# with pm.Model() as pooled_model:
-#     shape0 = pm.HalfCauchy('shape0', shape)
-#     rate0 = pm.HalfCauchy('rate0', 1/scale)
-#     area_dist = pm.Gamma('area_dist', alpha=shape0, beta=rate0, observed=area)
-#
-#     pooled_trace = pm.sample(1000, tune=2000)
-#     a0 = pooled_trace['shape0'].mean()
-#     b0 = pooled_trace['rate0'].mean()
-#
-#     print(f"shape: fitted= {shape}, sampled= {a0}")
-#     print(f"rate: fitted= {1/scale}, sampled= {b0}")
-
-# unpooled
-
-# with pm.Model() as unpooled_model:
-#     # each edge is different
-#     shape0 = pm.HalfCauchy('shape0', shape, shape=len(edge_to_idx))
-#     rate0 = pm.HalfCauchy('rate0', 1/scale)
-#     area_dist = pm.Gamma('area_dist', alpha=shape0[edge_idx], beta=rate0, observed=area)
-#
-# with unpooled_model:
-#     unpooled_trace = pm.sample(1000, tune=1000)
-#
-# plt.figure(figsize=(6, 14))
-# pm.forestplot(unpooled_trace, varnames=['shape0'])
-
 # partial pooling
 
 # shape2  rate2  rate1  rate0
 #    \     /      /      /
 #     \   /      /      /
-#    shape1_x   /      /
+#    shape1_x   /      /      <- distribution of graph edges
 #        \     /      /
 #         \   /      /
-#      shape0_{i,j} /
+#      shape0_{i,j} /      <- distribution of synapse areas per graph edge
 #            \     /
 #             \   /
-#           Y_{i,j,k}
+#           Y_{i,j,k}   <- area of single synapse
 
 
 def trace_sd(x):
