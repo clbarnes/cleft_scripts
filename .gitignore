@@ -3,3 +3,5 @@
 *.hdf
 *.n5/
 *.sqlite3
+*.pickle
+*.nc

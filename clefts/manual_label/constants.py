@@ -67,6 +67,20 @@ class Circuit(CustomStrEnum):
     def tex_short(self):
         return "{} $\\rightarrow$ {}".format(*str(self).split("-"))
 
+    def color(self):
+        return {
+            Circuit.BROAD_PN: "#1f77b4",
+            Circuit.ORN_PN: "#2ca02c",
+            Circuit.LN_BASIN: "#ff7f0e",
+            Circuit.CHO_BASIN: "#d62728",
+        }[self]
+
+    def marker(self):
+        if self.drive == Drive.EXCITATORY:
+            return "^"
+        else:
+            return "s"
+
 
 MANUAL_LABEL_DIR = Path(os.environ["MANUAL_LABEL_DIR"])
 
